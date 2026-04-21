@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: my-notes-cli
+Version: 0.3.0
+Summary: Simple CLI notes app
+Author: Guilherme
+Requires-Python: >=3.10

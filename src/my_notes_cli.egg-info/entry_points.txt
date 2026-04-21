@@ -1,0 +1,2 @@
+[console_scripts]
+notes = my_notes.cli.main:main
