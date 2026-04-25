@@ -1,12 +1,10 @@
 import argparse
 from pathlib import Path
-from my_notes.infra.serializer import NoteSerializer
-from my_notes.infra.storage import NoteStorage
-from my_notes.json.repository import NoteRepository
-from my_notes.application.service import NoteService
-from my_notes.cli.presenters import NotePrintMessages
-from my_notes.domain.note import Note
-from datetime import datetime
+from my_notes.src.my_notes.json.repository import NoteRepository
+from my_notes.src.my_notes.application.service import NoteService
+from my_notes.src.my_notes.infra.serializer import NoteSerializer
+from my_notes.src.my_notes.infra.storage import NoteStorage
+from my_notes.src.my_notes.domain.note import Note
 
 def main():
     parser = argparse.ArgumentParser(description="CLI de notas")
@@ -22,7 +20,7 @@ def main():
     subparsers.add_parser("list")
 
     delete_parser = subparsers.add_parser("delete")
-    delete_parser.add_argument("index", nargs="*", type=int)
+    delete_parser.add_argument("index", nargs="?", type=int)
     delete_parser.add_argument("--all", action="store_true")
 
     search_parser = subparsers.add_parser("search")
@@ -30,11 +28,9 @@ def main():
 
     args = parser.parse_args()
     
-    directory = Path.home() / 'notes'
-    directory.mkdir(parents=True, exist_ok=True)
-    repo = NoteRepository(NoteStorage(), NoteSerializer(), directory)
+    repo = NoteRepository(Path.home() / "notes", NoteSerializer, NoteStorage)
+    repo.mkdir(exist_ok=True)
     service = NoteService(repo)
-    print_system = NotePrintMessages()
 
     if args.command == "add":
         note = Note(
@@ -42,19 +38,17 @@ def main():
         title=args.title,
         description=args.description,
         tags=args.tags,
-        date=datetime.now())
+        timestamp=datetime.now())
         
-        service.create_note(note)
+        create_note(note)
 
     elif args.command == "list":
-        notes = service.get_all_notes()
-        print_system.print_notes(notes)
+        notes = get_all_notes()
+        for i, note in enumerate(notes, 1):
+            print(f"{i}. {note}")
 
     elif args.command == "delete":
-        files = service.get_note_by_index(args.index, args.all)
-        can_delete = print_system.get_confirmation(files)
-        if can_delete:
-        	service.delete_note(files)
+        delete_note(args.index, args.all)
    
     else:
         parser.print_help()

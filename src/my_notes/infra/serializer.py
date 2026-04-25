@@ -1,7 +1,4 @@
-import json
-from datetime import datetime
-from my_notes.domain.note import Note
-
+from my_notes.src.my_notes.domain.note import Note
 
 class NoteSerializer:
 	def to_dict(self, note: Note):
@@ -13,8 +10,8 @@ class NoteSerializer:
         	"date": note.date.isoformat()
 	       }
 	
-	def json_to_note(self, raw: str):
-	    data = json.loads(raw)
+	def json_to_note(self, data: dict):
+	    data = json.loads(path.read_text())
 	    return Note(
             content=data["content"],
             title=data["title"],
@@ -25,3 +22,8 @@ class NoteSerializer:
 	
 	def note_to_json(self, note: Note) -> str:
 	       return json.dumps(self.to_dict(note), ensure_ascii=False, indent=2)
+	
+	def create_note(self, note: Note) -> Note:
+	    file = self.base_dir / f"{note.name}.json"
+	    file.write_text(self.note_to_json(note), encoding="utf-8")
+	    return note
