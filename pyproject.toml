@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "my-notes-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "Simple CLI notes app"
 requires-python = ">=3.10"
 authors = [{ name = "Guilherme" }]
 dependencies = []
 
 [project.scripts]
-notes = "my_notes.cli.main:main"
+notes = "my_notes.src.my_notes.cli.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

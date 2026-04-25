@@ -1,5 +1,10 @@
 import argparse
-from my_notes.core.services import create_note, get_all_notes, delete_note, search_note
+from pathlib import Path
+from my_notes.src.my_notes.json.repository import NoteRepository
+from my_notes.src.my_notes.application.service import NoteService
+from my_notes.src.my_notes.infra.serializer import NoteSerializer
+from my_notes.src.my_notes.infra.storage import NoteStorage
+from my_notes.src.my_notes.domain.note import Note
 
 def main():
     parser = argparse.ArgumentParser(description="CLI de notas")
@@ -22,9 +27,20 @@ def main():
     search_parser.add_argument("term")
 
     args = parser.parse_args()
+    
+    repo = NoteRepository(Path.home() / "notes", NoteSerializer, NoteStorage)
+    repo.mkdir(exist_ok=True)
+    service = NoteService(repo)
 
     if args.command == "add":
-        create_note(args.content, args.title, args.description, args.tags)
+        note = Note(
+        content=args.content,
+        title=args.title,
+        description=args.description,
+        tags=args.tags,
+        timestamp=datetime.now())
+        
+        create_note(note)
 
     elif args.command == "list":
         notes = get_all_notes()
@@ -32,18 +48,7 @@ def main():
             print(f"{i}. {note}")
 
     elif args.command == "delete":
-        if not args.all:
-        	if args.index is None or index <= 0:
-        		print("Indice inválido")
-        		return    
         delete_note(args.index, args.all)
-
-    elif args.command == "search":
-        results = search_note(args.term)
-        if results:
-        	print(f"Resultados encontrados: {results}")
-        else:	
-        	print("Nenhum resultado foi encontrado")
    
     else:
         parser.print_help()
