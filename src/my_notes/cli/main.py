@@ -1,10 +1,12 @@
 import argparse
 from pathlib import Path
-from my_notes.src.my_notes.json.repository import NoteRepository
-from my_notes.src.my_notes.application.service import NoteService
-from my_notes.src.my_notes.infra.serializer import NoteSerializer
-from my_notes.src.my_notes.infra.storage import NoteStorage
-from my_notes.src.my_notes.domain.note import Note
+from my_notes.infra.serializer import NoteSerializer
+from my_notes.infra.storage import NoteStorage
+from my_notes.json.repository import NoteRepository
+from my_notes.application.service import NoteService
+from my_notes.cli.presenters import NotePrintMessages
+from my_notes.domain.note import Note
+from datetime import datetime
 
 def main():
     parser = argparse.ArgumentParser(description="CLI de notas")
@@ -20,7 +22,7 @@ def main():
     subparsers.add_parser("list")
 
     delete_parser = subparsers.add_parser("delete")
-    delete_parser.add_argument("index", nargs="?", type=int)
+    delete_parser.add_argument("index", nargs="*", type=int)
     delete_parser.add_argument("--all", action="store_true")
 
     search_parser = subparsers.add_parser("search")
@@ -28,9 +30,11 @@ def main():
 
     args = parser.parse_args()
     
-    repo = NoteRepository(Path.home() / "notes", NoteSerializer, NoteStorage)
-    repo.mkdir(exist_ok=True)
+    directory = Path.home() / 'notes'
+    directory.mkdir(parents=True, exist_ok=True)
+    repo = NoteRepository(NoteStorage(), NoteSerializer(), directory)
     service = NoteService(repo)
+    print_system = NotePrintMessages()
 
     if args.command == "add":
         note = Note(
@@ -38,17 +42,19 @@ def main():
         title=args.title,
         description=args.description,
         tags=args.tags,
-        timestamp=datetime.now())
+        date=datetime.now())
         
-        create_note(note)
+        service.create_note(note)
 
     elif args.command == "list":
-        notes = get_all_notes()
-        for i, note in enumerate(notes, 1):
-            print(f"{i}. {note}")
+        notes = service.get_all_notes()
+        print_system.print_notes(notes)
 
     elif args.command == "delete":
-        delete_note(args.index, args.all)
+        files = service.get_note_by_index(args.index, args.all)
+        can_delete = print_system.get_confirmation(files)
+        if can_delete:
+        	service.delete_note(files)
    
     else:
         parser.print_help()
