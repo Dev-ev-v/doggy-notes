@@ -7,7 +7,7 @@ name = "my-notes-cli"
 version = "0.1.0"
 description = "Simple CLI notes app"
 requires-python = ">=3.10"
-authors = [{ name = "Guilherme" }]
+authors = [{ name = "Dev-ev-v" }]
 dependencies = []
 
 [project.scripts]
