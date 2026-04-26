@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from my_notes.domain.note import Note
+from doggy_notes.domain.note import Note
 
 
 class NoteSerializer:

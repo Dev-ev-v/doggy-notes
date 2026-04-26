@@ -1,0 +1,23 @@
+* [33m9abaad5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Release oficial v1.0.0
+*   [33m8a68ac5[m Merge branch 'main' of https://github.com/Dev-ev-v/doggy-notes
+[32m|[m[33m\[m  
+[32m|[m * [33mfb7b596[m Fixing what git cannot fix
+* [33m|[m [33m38de0ae[m Release v1.0.0
+[33m|[m[33m/[m  
+* [33m7b092af[m[33m ([m[1;33mtag: [m[1;33mv0.9.0[m[33m)[m Release real v0.9.0
+* [33m402da4b[m Release real v0.1.0
+* [33mfa133e8[m Release real v0.7.0
+* [33me8649df[m Bump version to 0.7.0 and update author name
+* [33m57ccc95[m Release version 0.9.0
+* [33m4b28bc4[m Release version 0.7.0
+* [33m9986725[m Release version 0.1.0
+* [33m785580b[m Enhance README with features and usage instructions
+* [33m0301d83[m Fix: inicialization problem solved
+* [33m2275351[m Update copyright year and owner in LICENSE file
+*   [33mf13d5be[m Merge branch 'main' of https://github.com/Dev-ev-v/doggy-notes
+[34m|[m[35m\[m  
+[34m|[m * [33md01305a[m Add pattern to ignore Python bytecode files
+* [35m|[m [33m4c9e9a5[m remove py cache and egg file
+[35m|[m[35m/[m  
+* [33m4e0e0a5[m initial commit
+* [33m7d9b397[m Initial commit

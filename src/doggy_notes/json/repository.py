@@ -1,7 +1,7 @@
 from pathlib import Path
-from my_notes.domain.note import Note
-from my_notes.infra.serializer import NoteSerializer
-from my_notes.infra.storage import NoteStorage
+from doggy_notes.domain.note import Note
+from doggy_notes.infra.serializer import NoteSerializer
+from doggy_notes.infra.storage import NoteStorage
 
 class NoteRepository:
     def __init__(self, storage: NoteStorage, serializer: NoteSerializer, base_dir: Path):

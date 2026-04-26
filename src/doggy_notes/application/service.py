@@ -1,5 +1,5 @@
-from my_notes.json.repository import NoteRepository
-from my_notes.domain.note import Note
+from doggy_notes.json.repository import NoteRepository
+from doggy_notes.domain.note import Note
 
 class NoteService:
     def __init__(self, repo: NoteRepository):

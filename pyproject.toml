@@ -4,14 +4,33 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "doggy-notes"
-version = "1.0.0"
-description = "CLI notes app"
+version = "1.1.0"
+description = "Command-line note taking application"
+readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "Dev-ev-v" }]
+
+authors = [
+  {name = "Dev-ev-v"}
+]
+
+license = {text = "Apache-2.0"}
+
+keywords = ["cli", "notes", "productivity"]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "License :: OSI Approved :: Apache Software License",
+  "Environment :: Console"
+]
+
 dependencies = []
 
+[project.urls]
+Repository = "https://github.com/Dev-ev-v/doggy-notes"
+
 [project.scripts]
-notes = "my_notes.cli.main:main"
+doggy = "doggy_notes.cli.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
