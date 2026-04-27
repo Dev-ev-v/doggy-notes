@@ -21,19 +21,16 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "License :: OSI Approved :: Apache Software License",
-  "Environment :: Console"
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Topic :: Utilities"
 ]
 
-dependencies = []
+dependencies = [
+  "typer[all]>=0.12.3,<1.0"
+]
 
 [project.urls]
+Homepage = "https://github.com/Dev-ev-v/doggy-notes"
 Repository = "https://github.com/Dev-ev-v/doggy-notes"
-
-[project.scripts]
-doggy = "doggy_notes.cli.main:main"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools.packages.find]
-where = ["src"]
+Issues = "https://github.com/Dev-ev-v/doggy-notes/issues"
