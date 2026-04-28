@@ -38,19 +38,19 @@ pip install doggy-notes
 Create a note:
 
 ```bash
-notes add
+doggy add
 ```
 
 List notes
 
 ```bash
-notes list
+doggy list
 ```
 
 Delete a note:
 
 ```bash
-my-notes delete 3
+doggy delete 3
 ```
 
 ## Command Reference
@@ -87,7 +87,7 @@ Planned:
 - Export notes
 - Encryption
 - Backup support
-
+<Up>
 ## Why This Project
 
 Built as a lightweight, fast and privacy-friendly terminal note manager.

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68","wheel","setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "doggy-notes"
-version = "1.1.0"
+name="doggy-notes"
+dynamic=["version"]
 description = "Command-line note taking application"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -34,3 +34,16 @@ dependencies = [
 Homepage = "https://github.com/Dev-ev-v/doggy-notes"
 Repository = "https://github.com/Dev-ev-v/doggy-notes"
 Issues = "https://github.com/Dev-ev-v/doggy-notes/issues"
+
+[project.scripts]
+doggy = "doggy_notes.cli.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+
+[tool.setuptools.packages.find]
+where = ["src"]
