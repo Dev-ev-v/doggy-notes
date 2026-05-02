@@ -7,14 +7,22 @@ assignees: Dev-ev-v
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Problem
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+What limitation or pain point does this solve?
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## Proposal
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+Describe the feature idea clearly and concisely.
+
+## Use case
+
+How would this be used in practice?
+
+## Alternatives considered
+
+Optional: other approaches or why this one is better
+
+## Additional context
+
+Anything else (links, screenshots, references)
