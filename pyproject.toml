@@ -3,45 +3,48 @@ requires = ["setuptools>=68","wheel","setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name="doggy-notes"
-dynamic=["version"]
+name = "doggy-notes"
+dynamic = ["version"]
 description = "Command-line note taking application"
 readme = "README.md"
 requires-python = ">=3.10"
 
 authors = [
-  {name = "Dev-ev-v"}
+  {name = "Dev-ev-v", email = "guilhermepapuf.dev@proton.me"}
 ]
 
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 
 keywords = ["cli", "notes", "productivity"]
 
 classifiers = [
-  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
-  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Environment :: Console",
   "Intended Audience :: Developers",
   "Topic :: Utilities"
 ]
 
 dependencies = [
-  "typer[all]>=0.12.3,<1.0"
+  "typer>=0.12.3,<1.0"
 ]
 
 [project.urls]
 Homepage = "https://github.com/Dev-ev-v/doggy-notes"
 Repository = "https://github.com/Dev-ev-v/doggy-notes"
 Issues = "https://github.com/Dev-ev-v/doggy-notes/issues"
+Documentation = "https://github.com/Dev-ev-v/doggy-notes#readme"
+Changelog = "https://github.com/Dev-ev-v/doggy-notes/releases"
 
 [project.scripts]
-doggy = "doggy_notes.cli.main:main"
+doggy = "doggy_notes.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools_scm]
+version_file = "src/doggy_notes/_version.py"
 version_scheme = "post-release"
 local_scheme = "no-local-version"
 

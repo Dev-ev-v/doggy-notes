@@ -1,24 +1,15 @@
 from pathlib import Path
 
-from doggy_notes.infra.serializer import NoteSerializer
 from doggy_notes.infra.storage import NoteStorage
-from doggy_notes.json.repository import NoteRepository
-from doggy_notes.application.service import NoteService
-from doggy_notes.cli.presenters import NotePrintMessages
-
+from doggy_notes.domain.services.note_service import NoteService
+from doggy_notes.cli.controller import NoteCLI
+from doggy_notes.infra.presenters.note_presenter import NotePresenter
+from doggy_notes.infra.persistence.sqlite_note_repository import SQLiteNoteRepository
+from doggy_notes.domain.repositories.note_repository import NoteRepository
 
 def get_service():
-    directory = Path.home() / "doggy-notes"
-    directory.mkdir(parents=True, exist_ok=True)
-
-    repo = NoteRepository(
-        NoteStorage(),
-        NoteSerializer(),
-        directory
-    )
-
+    repo = SQLiteNoteRepository(NoteStorage().resolve("doggy-notes.db"))
     return NoteService(repo)
 
-
 def get_printer():
-    return NotePrintMessages()
+    return NoteCLI(NotePresenter)

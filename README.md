@@ -38,7 +38,7 @@ pip install doggy-notes
 Create a note:
 
 ```bash
-doggy add
+doggy add "your text here"
 ```
 
 List notes
@@ -50,7 +50,7 @@ doggy list
 Delete a note:
 
 ```bash
-doggy delete 3
+doggy delete <index>
 ```
 
 ## Command Reference
@@ -73,7 +73,7 @@ Example structure:
  "title":"Note",
  "description":"How to use argparse + examples"
  "tags":["python","cli"],
- "data":"2026-04-25"
+ "date":"2026-04-25"
 }
 ```
 
@@ -85,9 +85,10 @@ Planned:
 - Search notes
 - Edit notes
 - Export notes
+- Import notes
 - Encryption
 - Backup support
-<Up>
+
 ## Why This Project
 
 Built as a lightweight, fast and privacy-friendly terminal note manager.

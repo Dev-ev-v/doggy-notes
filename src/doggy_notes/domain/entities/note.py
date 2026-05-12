@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List
+import uuid
+
+def generate_id() -> str:
+    return uuid.uuid4().hex
 
 @dataclass
 class Note:
@@ -9,7 +13,4 @@ class Note:
     description: str
     tags: List[str]
     date: datetime
-    
-    @property
-    def name(self) -> str:
-    	return self.title or self.date
+    id: str = field(default_factory=generate_id)
