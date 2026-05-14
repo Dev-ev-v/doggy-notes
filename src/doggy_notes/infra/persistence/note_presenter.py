@@ -12,8 +12,6 @@ class NotePresenter:
     	
     @staticmethod
     def format(note: Note) -> Text:
-        if not isinstance(note, Note):
-        	return note
         short_id = note.id[:8]
         title = note.title or "Untitled"
         if isinstance(note.date, str):
@@ -25,23 +23,29 @@ class NotePresenter:
         text.append(short_id, style="bold magenta")
         text.append("] ", style="dim")
         text.append(title)
-        text.append(" (", style="dim")
         text.append(
-            date.strftime('%Y-%m-%d'),
-            style="blue"
+            f" ({date.strftime('%Y-%m-%d')})",
+            style="dim"
         )
-        text.append(")", style="dim")
         return text
     
     @staticmethod
-    def format_many(notes: list[Note]) -> list[Text]:
-    	return [NotePresenter.format(note) for note in notes]
+    def format_many(notes):
+    	if not notes:
+    		return "[dim]No notes found[/dim]"
+    	return Group(
+        	*[
+            	NotePresenter.format(note)
+            	for note in notes
+       	 ]
+  	  )
     
     @staticmethod
-    def format_errors(errors: list[str]) -> Text:
+    def format_errors(errors: list[str]):
     	text = Text()
+    	text.append("\n" * 2)
     	for i, error in enumerate(errors):
-    		text.append(f"- {error} ", style="dim")
+    		text.append(f"• {error} ", style="dim")
     		if i < len(errors) - 1:
     			text.append("\n")
     	return text	  

@@ -7,7 +7,7 @@ class ListNotesUseCase:
 		self.service = service
 		
 	def execute(self, tags=None):
-		notes = self.service.get_service(tags=tags)	
-		if not notes:
+		notes_list = self.service.get_service(tags=tags)	
+		if not notes_list:
 			raise EmptyStorageError("No notes in storage, create a note first")
-		return notes
+		return notes_list

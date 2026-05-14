@@ -23,7 +23,18 @@ class NoteService:
                 return self.repo.get_by_short_id(id)
             return self.repo.get_by_id(id)
         elif tags:
-            return [tag for tag in tags], [self.repo.get_by_tag(tag) for tag in tags]
+            formatted = {}
+            for tag in tags:
+            	tag_list = []
+            	notes = self.repo.get_by_tag(tag)
+            	if notes:
+            		for note in notes:
+            			tag_list.append(note)
+            	else:
+            		notes = ["[red]No notes found[/red]"]
+            		tag_list.append(notes)
+            	formatted[tag] = notes
+            return formatted
         else:
             return self.repo.get_all()
 

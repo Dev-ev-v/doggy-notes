@@ -1,5 +1,6 @@
 import typer
 from typing import Optional, List
+from doggy_notes.domain.entities.note import Note
 from doggy_notes.cli.dependencies import get_service
 from doggy_notes.application.use_cases.list_notes import ListNotesUseCase
 from doggy_notes.infra.presenters.note_presenter import NotePresenter
@@ -18,13 +19,12 @@ def list_func(
     try:
         if tags:
             tags = list(dict.fromkeys(tags))
-            tag_filters, notes_groups = use_case.execute(tags)
-            for tag, notes in zip(tag_filters, notes_groups):
-                console.note(presenter.format_many(notes), tag)
+            tags_list = use_case.execute(tags)
+            for name, tag_list in tags_list.items():
+            	console.list_notes(name, [presenter.format(tag) for tag in tag_list])
         else:
             notes = use_case.execute()
-            for note in notes:
-                console.note(presenter.format(note))
+            console.list_notes("Notes", presenter.format_many(notes))
     except (
         EmptyStorageError
     ) as e:

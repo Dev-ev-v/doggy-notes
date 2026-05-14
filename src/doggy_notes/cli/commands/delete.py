@@ -4,7 +4,6 @@ from doggy_notes.cli.dependencies import get_service
 from doggy_notes.infra.presenters.note_presenter import NotePresenter
 from doggy_notes.cli.console import Console
 from doggy_notes.domain.exceptions.note_errors import (
-    InvalidNoteSelectionError,
     NoteNotFoundError
 )
 

@@ -3,9 +3,6 @@ class NoteError(Exception):
 
 class NoteNotFoundError(NoteError):
     pass
-
-class InvalidNoteSelectionError(NoteError):
-    pass
     
 class InvalidNoteCreateError(NoteError):
 	pass

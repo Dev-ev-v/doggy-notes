@@ -8,7 +8,8 @@ Create and manage notes quickly without leaving the command line.
 
 - Create notes
 - Delete single or multiple notes
-- JSON storage
+- Note search
+- SQLITE storage
 - Tag support
 - Creation timestamps
 
@@ -67,7 +68,7 @@ Notes are stored locally in JSON.
 
 Example structure:
 
-```json
+```note
 {
  "content":"Review argparse",
  "title":"Note",
@@ -81,8 +82,6 @@ Example structure:
 
 Planned:
 
-- SQLite backend
-- Search notes
 - Edit notes
 - Export notes
 - Import notes

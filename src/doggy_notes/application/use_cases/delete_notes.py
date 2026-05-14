@@ -1,7 +1,6 @@
 import typer
 from doggy_notes.domain.repositories.note_repository import NoteRepository
 from doggy_notes.domain.exceptions.note_errors import (
-    InvalidNoteSelectionError,
     NoteNotFoundError
 )
 
