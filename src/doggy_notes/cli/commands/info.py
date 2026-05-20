@@ -2,6 +2,7 @@ import sys
 import typer
 from importlib.metadata import metadata, version, PackageNotFoundError
 from pathlib import Path
+from doggy_notes.infra.paths import build_paths
 
 APP_NAME = "doggy-notes"
 
@@ -20,7 +21,7 @@ def _status(path: Path) -> str:
     return "✓" if path.exists() else "✗"
 
 def info():
-    """Show detailed information about the installation and environment."""
+    """[bold cyan]Show detailed information about the installation and environment[/bold cyan]"""
 
     try:
         pkg = metadata(APP_NAME)
@@ -31,18 +32,20 @@ def info():
 
     urls = _get_project_urls(pkg)
 
-    config_dir = Path.home() / ".config" / APP_NAME
-    config_file = config_dir / "config.toml"
-    data_dir = Path.home() / f".local/share/{APP_NAME}"
-    cache_dir = Path.home() / f".cache/{APP_NAME}"
+    Paths = build_paths()    
+    config_dir = Paths.config_dir
+    config_file = Paths.config_file
+    data_dir = Paths.data_dir
+    cache_dir = Paths.cache_dir    
 
-    typer.secho("Doggy Notes - Environment Info\n", bold=True)
+    typer.secho("Doggy Notes - Runtime Info\n", bold=True)
 
-    typer.echo("Package")
+    typer.echo("Runtime")
     typer.echo(f"  Name:        {pkg['Name']}")
     typer.echo(f"  Version:     {pkg_version}")
     typer.echo(f"  Python req:  {pkg['Requires-Python']}")
-    typer.echo(f"  Python exec: {sys.version.split()[0]}")
+    typer.echo(f"  Python ver:  {sys.version.split()[0]}")
+    typer.echo(f"  Python exec: {sys.executable}")
     typer.echo()
 
     typer.echo("Paths")

@@ -12,7 +12,7 @@ class CreateNoteUseCase:
         content: str,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: List[str] = None,
     ):
         note = Note(
             content=content,
@@ -22,5 +22,5 @@ class CreateNoteUseCase:
             date=datetime.now(),
         )
 
-        self.service.save_service(note)
+        self.service.create(note)
         return note

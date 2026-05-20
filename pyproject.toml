@@ -27,7 +27,8 @@ classifiers = [
 ]
 
 dependencies = [
-  "typer>=0.12.3,<1.0"
+  "typer>=0.12.3,<1.0",
+  "platformdirs>=4.0.0"
 ]
 
 [project.urls]
@@ -38,7 +39,7 @@ Documentation = "https://github.com/Dev-ev-v/doggy-notes#readme"
 Changelog = "https://github.com/Dev-ev-v/doggy-notes/releases"
 
 [project.scripts]
-doggy = "doggy_notes.main:main"
+doggy = "doggy_notes.main:app"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

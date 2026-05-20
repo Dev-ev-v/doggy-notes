@@ -1,6 +1,6 @@
 # doggy-notes CLI
 
-Fast note-taking in the terminal using JSON storage.
+Fast note-taking in the terminal using SQLite storage.
 
 Create and manage notes quickly without leaving the command line.
 
@@ -8,10 +8,13 @@ Create and manage notes quickly without leaving the command line.
 
 - Create notes
 - Delete single or multiple notes
+- Confirmation before deletion
 - Note search
-- SQLITE storage
+- SQLite storage
 - Tag support
 - Creation timestamps
+- Read notes in details
+- Edit notes
 
 ## Installation
 
@@ -60,11 +63,13 @@ doggy delete <index>
 |---------|-------------|
 | add     | Create note |
 | delete  | Delete note |
-| list    | Show notes |
+| list    | Find notes |
+| read  | Show notes details |
+| edit  | Edit notes |
 
 ## Storage
 
-Notes are stored locally in JSON.
+Notes are stored locally in SQLite.
 
 Example structure:
 
@@ -82,11 +87,13 @@ Example structure:
 
 Planned:
 
-- Edit notes
 - Export notes
 - Import notes
 - Encryption
 - Backup support
+- README support
+- Filter notes dedicated function
+- Personalizations
 
 ## Why This Project
 

@@ -3,10 +3,11 @@ from math import ceil
 from rich.console import Console as RichConsole
 from rich.columns import Columns
 from rich.panel import Panel
+from rich.text import Text
 from rich.table import Table
 from rich.theme import Theme
 from rich.box import ROUNDED
-
+from rich.align import Align
 
 custom_theme = Theme({
     "info": "dim cyan",
@@ -25,7 +26,6 @@ class Console:
         self.console = console or RichConsole(
             theme=custom_theme
         )
-
         self.e_console = RichConsole(
             theme=custom_theme,
             stderr=True,
@@ -52,7 +52,7 @@ class Console:
         self._status("ERROR", text, "error", stderr=True)
 
     def warning(self, text: str):
-        self._status("WARNING", text, "warning")
+        self._status("!", text, "warning")
 
     def info(self, text: str):
         self._status("INFO", text, "info")
@@ -65,7 +65,6 @@ class Console:
         stderr: bool = False,
     ):
         message = f"[bold][{label}][/bold] {text}"
-
         if stderr:
             self.write_e(message, style=style)
         else:
@@ -89,81 +88,105 @@ class Console:
             )
         )
 
+    def read(self, text: Text, title: str | None = None):
+        content = Panel(
+            text,
+            title=title,
+            border_style="bright_blue",
+            box=ROUNDED,
+        )
+        with self.console.pager(styles=True):
+            self.console.print(content)
+
     # =========================
     # Tables
     # =========================
 
     def list_notes(
         self,
-        title: str,
-        items: list[str],
+        items: list[str] | None = None,
+        title: str = "Notes",
+        groups: dict[str, list[str]] | None = None,
+        filters: dict[str, any] | None = None,
         tables_per_row: int = 1,
     ):
-        if not items:
+     
+        if groups:
+            items_to_show = [item for group in groups.values() for item in group]
+        else:
+            items_to_show = items or []
+
+        if not items_to_show:
             self.warning("No notes found.")
             return
 
-        items_per_table = ceil(
-            len(items) / tables_per_row
-        )
+        if groups:
+            rendered_tables = []
+            for group_name, group_items in groups.items():
+                filtered_items = self._apply_filters(group_items, filters)
+                if filtered_items:
+                    table = self._create_table(
+                        filtered_items,
+                        title=f"Tag: {group_name}",
+                    )
+                    rendered_tables.append(table)
 
+            if rendered_tables:
+                columns = Columns(rendered_tables, equal=True, expand=False)
+                self.write(Align.center(columns))
+            return
+
+        filtered_items = self._apply_filters(items_to_show, filters)
+        if not filtered_items:
+            self.warning("No notes match the filters.")
+            return
+
+        items_per_table = ceil(len(filtered_items) / tables_per_row)
         tables = []
 
-        for start in range(
-            0,
-            len(items),
-            items_per_table,
-        ):
-            chunk = items[start:start + items_per_table]
-
-            table = Table(
-                title=title,
-                expand=True,
-                box=ROUNDED,
-                border_style="bright_blue",
-                header_style="bold magenta",
-                row_styles=["none", "dim"],
-            )
-
-            table.add_column(
-                "#",
-                justify="right",
-                style="cyan",
-                width=4,
-            )
-
-            table.add_column(
-                "Item",
-                style="white",
-                overflow="fold",
-            )
-
-            for index, item in enumerate(
-                chunk,
-                start=start + 1,
-            ):
-                table.add_row(str(index), item)
-
+        for start in range(0, len(filtered_items), items_per_table):
+            chunk = filtered_items[start:start + items_per_table]
+            table = self._create_table(chunk, title=title, start_index=start + 1)
             tables.append(table)
 
-        self.write(
-        	"\n",
-            Columns(
-                tables,
-                equal=True,
-                expand=True,
-            )
+        columns = Columns(tables, equal=True, expand=False)
+        self.write(Align.center(columns))
+
+    def _create_table(self, items: list[str], title: str, start_index: int = 1):
+        table = Table(
+            title=title,
+            expand=True,
+            box=ROUNDED,
+            border_style="bright_blue",
+            header_style="bold magenta",
+            row_styles=["none", "dim"],
         )
+        table.add_column("#", justify="right", style="cyan", width=4)
+        table.add_column("Item", style="white", overflow="fold")
+
+        for index, item in enumerate(items, start=start_index):
+            table.add_row(str(index), item)
+
+        return table
+
+    def _apply_filters(self, items: list[str], filters: dict | None) -> list[str]:
+        if not filters:
+            return items
+            
+        if "limit" in filters:
+            return items[:filters["limit"]]
+
+        return items
 
     # =========================
     # Input
     # =========================
 
     def confirm(self, text: str) -> bool:
+        self.warning(text)
         answer = input(
-            f"{text} [y/n]: "
+            "[y/n]: "
         ).strip().lower()
-
         return answer in {
             "y",
             "yes",

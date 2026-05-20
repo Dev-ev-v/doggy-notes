@@ -1,15 +1,22 @@
-from pathlib import Path
-
-from doggy_notes.infra.storage import NoteStorage
-from doggy_notes.domain.services.note_service import NoteService
-from doggy_notes.cli.controller import NoteCLI
-from doggy_notes.infra.presenters.note_presenter import NotePresenter
+from functools import lru_cache
+from doggy_notes.infra.paths import build_paths
+from doggy_notes.infra.database.migrations import ensure_schema
 from doggy_notes.infra.persistence.sqlite_note_repository import SQLiteNoteRepository
-from doggy_notes.domain.repositories.note_repository import NoteRepository
+from doggy_notes.domain.services.note_service import NoteService
 
+@lru_cache
+def get_paths():
+    return build_paths()
+
+@lru_cache
+def get_repository():
+    paths = get_paths()
+    return SQLiteNoteRepository(paths.database_file)
+
+@lru_cache
 def get_service():
-    repo = SQLiteNoteRepository(NoteStorage().resolve("doggy-notes.db"))
-    return NoteService(repo)
-
-def get_printer():
-    return NoteCLI(NotePresenter)
+    return NoteService(get_repository())
+    
+def initialize_database() -> None:
+    paths = get_paths()
+    ensure_schema(paths.database_file)

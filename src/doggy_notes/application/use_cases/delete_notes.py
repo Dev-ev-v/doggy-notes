@@ -1,46 +1,78 @@
-import typer
-from doggy_notes.domain.repositories.note_repository import NoteRepository
-from doggy_notes.domain.exceptions.note_errors import (
-    NoteNotFoundError
+from doggy_notes.presentation.presenters.note_presenter import (
+    NotePresenter,
+    ErrorsPresenter,
 )
 
+from doggy_notes.cli.console import Console
+
+from doggy_notes.domain.exceptions.note_errors import (
+    EmptyStorageError,
+    NotesNotFoundError,
+    InvalidNoteError,
+)
+
+
 class DeleteNotesUseCase:
+
     def __init__(self, service):
         self.service = service
-        
+
     def resolve_notes(
         self,
         ids: list[str] | None = None,
+        tags: list[str] | None = None,
         delete_all: bool = False,
     ):
-        selectors = [ids is not None, delete_all]
-        if sum(selectors) != 1:
-            if not sum(selectors):
-            	raise typer.BadParameter(
-            	"Please use a valid argument")
-            else:	
-            	raise typer.BadParameter(
-                "Choose exactly one delete target."
+        result = self.service.get(
+            ids=ids,
+            tags=tags,
+        )
+
+        if result.is_empty:
+            if tags or ids:
+            	filters = {}
+            	if tags:
+            		filters["tags"] = tags 
+            	if ids:
+            		filters["ids"] = ids 
+            	raise NotesNotFoundError(
+            			ErrorsPresenter.format_errors(filters)
             	)
-        errors = []
-        if delete_all:
-            notes = self.service.get_service()
-        else: 
-        	notes = []
-        	for note_id in ids:
-           	 note = self.service.get_service(note_id)
-           	 if note is None:
-             	   errors.append(note_id + " don't exist in storage")
-           	 else:
-            		notes.append(note)
-        if not notes:
-            raise NoteNotFoundError("Note ids not found in storage")
-        return notes, errors
+            raise EmptyStorageError("Empty storage, create a note first")
+
+        return result
+
+    def get_confirmation(
+        self,
+        result,
+    ):
+        console = Console()
+
+        quantity = len(result.items)
+
+        confirmed = console.confirm(
+            f"{quantity} notes will be deleted. Continue?"
+        )
+
+        return confirmed
 
     def execute(
         self,
-        notes
+        result,
     ):
-        for note in notes:
-            self.service.delete_service(note)
-        return notes
+        deleted = []
+
+        seen_ids = set()
+
+        for note in result.items:
+
+            if note.id in seen_ids:
+                continue
+
+            self.service.delete(note)
+
+            seen_ids.add(note.id)
+
+            deleted.append(note)
+
+        return deleted
