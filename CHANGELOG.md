@@ -1,3 +1,16 @@
+# CHANGELOG.md
+
+## [2.1.1] - 2026-05-22
+
+### Added
+
+- You can now download doggy-notes without the .git file. Assets are now working
+- Classifiers and keywords updated
+
+### Fixed
+
+- Previously, the UTC time zone was used as the default in the output, resulting in incorrect times. This issue has been resolved by using the local time zone
+
 ## [2.1.0] - 2026-05-20
 
 ### Added

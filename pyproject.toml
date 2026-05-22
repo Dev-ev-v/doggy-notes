@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "doggy-notes"
 dynamic = ["version"]
-description = "Command-line note taking application"
+description = "Secure, portable CLI note-taking app with filtering and rich formatting"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<4"
 
 authors = [
   {name = "Dev-ev-v", email = "guilhermepapuf.dev@proton.me"}
@@ -15,15 +15,36 @@ authors = [
 
 license = "Apache-2.0"
 
-keywords = ["cli", "notes", "productivity"]
+keywords = [
+  "cli",                  
+  "notes",              
+  "productivity",         
+  "diary",                 
+  "reminders",          
+  "text-editor",            
+  "secure",                 
+  "private",              
+  "portable",               
+  "filter",                
+  "rich-output",            
+]
 
 classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Environment :: Console",
+  "Programming Language :: Python :: Implementation :: CPython",    
+  "Environment :: Console",  
   "Intended Audience :: Developers",
-  "Topic :: Utilities"
+  "Intended Audience :: End Users/Desktop",   
+  "Topic :: Office/Business",
+  "Topic :: Text Editors :: Word Processors",
+  "Topic :: Office/Business :: News/Diary", 
+  "Topic :: Utilities",
 ]
 
 dependencies = [
@@ -36,7 +57,7 @@ Homepage = "https://github.com/Dev-ev-v/doggy-notes"
 Repository = "https://github.com/Dev-ev-v/doggy-notes"
 Issues = "https://github.com/Dev-ev-v/doggy-notes/issues"
 Documentation = "https://github.com/Dev-ev-v/doggy-notes#readme"
-Changelog = "https://github.com/Dev-ev-v/doggy-notes/releases"
+Changelog = "https://github.com/Dev-ev-v/doggy-notes/blob/main/CHANGELOG.md"
 
 [project.scripts]
 doggy = "doggy_notes.main:app"
@@ -48,6 +69,7 @@ package-dir = {"" = "src"}
 version_file = "src/doggy_notes/_version.py"
 version_scheme = "post-release"
 local_scheme = "no-local-version"
+fallback-version = "2.1.0"
 
 [tool.setuptools.packages.find]
 where = ["src"]

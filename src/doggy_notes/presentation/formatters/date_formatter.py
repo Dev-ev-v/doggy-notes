@@ -11,7 +11,9 @@ class DateFormatter:
             raise ValueError(f"Invalid date format: {date_str}") from e
         now = now or datetime.now(timezone.utc)
         if date.tzinfo is None:
-        	date = date.replace(tzinfo=timezone.utc)
+        	raise ValueError(
+        "Datetime must include timezone information"
+	    )
         if now.tzinfo is None:
        	 now = now.replace(tzinfo=timezone.utc)
         delta = now - date

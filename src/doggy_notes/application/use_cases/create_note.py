@@ -1,5 +1,5 @@
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from doggy_notes.domain.entities.note import Note
 
@@ -19,7 +19,7 @@ class CreateNoteUseCase:
             title=title,
             description=description,
             tags=tags or [],
-            date=datetime.now(),
+            date=datetime.now(timezone.utc),
         )
 
         self.service.create(note)

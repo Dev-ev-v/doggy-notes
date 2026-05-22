@@ -20,7 +20,7 @@ def ensure_schema(db_path: Path) -> None:
                     description TEXT,
                     content TEXT NOT NULL,
                     tags TEXT,
-                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    date TEXT NOT NULL
                 );
             """)
 
