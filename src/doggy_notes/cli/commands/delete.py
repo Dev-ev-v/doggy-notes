@@ -57,7 +57,7 @@ before execution.
 """
     deps = get_dependencies()
     try:
-        if all and note_ids or all and tags:
+        if delete_all and note_ids or delete_all and tags:
         	raise InvalidNoteError("args", "Use --all without any other selection methods")
         if note_ids:
         	note_ids = [deps.parser.parse_id(id) for id in note_ids]

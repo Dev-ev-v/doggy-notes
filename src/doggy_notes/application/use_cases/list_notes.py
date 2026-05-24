@@ -36,7 +36,6 @@ class ListNotesUseCase:
         limit: int | None = None,
         asc: bool | None = None,
         desc: bool | None = None,
-        multiple: bool | None = None,
     ):
         result = self.service.get(tags=tags)
         if result.is_empty:

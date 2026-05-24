@@ -36,19 +36,12 @@ def list_func(
         "--desc",
         help="Sort in descending order",
     ),
-    multiple_tags: Optional[bool] = typer.Option(
-    False,
-    "--multiple",
-    "-mt",
-    help="Display each tag result"
-    )
 ):
     """
     [bold cyan]List all saved notes or search by tags[/bold cyan]
 
     Display notes from storage with optional filtering and sorting.
     Without filters, shows all notes ordered by date.
-    Using tags, display all notes that have all those tags together.  Use --multiple to show each tag result instead
 
     [bold yellow]EXAMPLES:[/bold yellow]
 
@@ -65,10 +58,6 @@ def list_func(
       Sort in ascending or descending order:
         doggy list --tag "market" --tag "list" --asc
         doggy list --tag foods --tag cheap --sort title -- desc
-        
-      Display each tag result
-        doggy list --tag cli --tag python --multiple
-        doggy list --tag market --tag list --tag important -mt
 
       Limit results:
         doggy list --limit 5
@@ -89,7 +78,7 @@ def list_func(
        	 deps.console.warning("Got both --asc and --desc, using --asc")
        	 asc = True
        	 desc = None
-        if limit:
+        if isinstance(limit, int):
         	if limit <= 0:
         		deps.console.warning("Invalid --limit, must be higher than 0")
         		limit = None
@@ -105,7 +94,6 @@ def list_func(
             limit=limit,
             asc=asc,
             desc=desc,
-            multiple=multiple_tags,
         )
 
         rendered_items = [
