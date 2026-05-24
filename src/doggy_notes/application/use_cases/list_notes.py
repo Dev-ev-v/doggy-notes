@@ -1,6 +1,7 @@
 from doggy_notes.domain.exceptions.note_errors import (
     EmptyStorageError,
     NotesNotFoundError,
+    InvalidNoteError,
 )
 
 from doggy_notes.presentation.presenters.note_presenter import (
@@ -16,7 +17,7 @@ class ListNotesUseCase:
         },
         "date": {
             "reverse": True,
-            "description": "Recent first",
+            "description": "Recent first"
         },
     }
 
@@ -33,10 +34,11 @@ class ListNotesUseCase:
         tags: list[str] | None = None,
         sort_by: str = "date",
         limit: int | None = None,
+        asc: bool | None = None,
         desc: bool | None = None,
+        multiple: bool | None = None,
     ):
         result = self.service.get(tags=tags)
-
         if result.is_empty:
             if tags:
                 filters = {}
@@ -47,15 +49,13 @@ class ListNotesUseCase:
             raise EmptyStorageError("Empty storage, create a note first")
 
         if sort_by not in self.SORT_DEFAULTS:
-            raise ValueError(
-                f"Invalid sort_by: {sort_by}"
+            raise InvalidNoteError(
+                "--sort", f"{sort_by} is not a valid value or --sort"
             )
-
-        reverse = (
-            desc
-            if desc is not None
-            else self.SORT_DEFAULTS[sort_by]["reverse"]
-        )
+            
+        reverse = False if asc else desc
+        if not asc and not desc:
+            reverse = self.SORT_DEFAULTS[sort_by]["reverse"]
 
         sorted_items = sorted(
             result.items,

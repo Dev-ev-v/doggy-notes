@@ -1,13 +1,11 @@
 import typer
 from typing import Optional, List
 
-from doggy_notes.cli.dependencies import get_service
-from doggy_notes.presentation.presenters.note_presenter import NotePresenter
-from doggy_notes.cli.console import Console
-from doggy_notes.application.use_cases.list_notes import ListNotesUseCase
+from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.exceptions.note_errors import (
     EmptyStorageError,
     NotesNotFoundError,
+    InvalidNoteError,
 )
 
 
@@ -28,17 +26,29 @@ def list_func(
         "--sort",
         help="Sort by: 'date' (newest first) or 'title' (alphabetical)",
     ),
+    asc: Optional[bool] = typer.Option(
+        None,
+        "--asc",
+        help="Sort in ascending order",
+    ),
     desc: Optional[bool] = typer.Option(
         None,
         "--desc",
-        help="Inverts the notes result order",
+        help="Sort in descending order",
     ),
+    multiple_tags: Optional[bool] = typer.Option(
+    False,
+    "--multiple",
+    "-mt",
+    help="Display each tag result"
+    )
 ):
     """
     [bold cyan]List all saved notes or search by tags[/bold cyan]
 
     Display notes from storage with optional filtering and sorting.
     Without filters, shows all notes ordered by date.
+    Using tags, display all notes that have all those tags together.  Use --multiple to show each tag result instead
 
     [bold yellow]EXAMPLES:[/bold yellow]
 
@@ -52,8 +62,13 @@ def list_func(
       Sort alphabetically:
         doggy list --sort title
 
-      Invert results:
-        doggy list --tag "market" --tag "list" --desc
+      Sort in ascending or descending order:
+        doggy list --tag "market" --tag "list" --asc
+        doggy list --tag foods --tag cheap --sort title -- desc
+        
+      Display each tag result
+        doggy list --tag cli --tag python --multiple
+        doggy list --tag market --tag list --tag important -mt
 
       Limit results:
         doggy list --limit 5
@@ -62,56 +77,67 @@ def list_func(
     [bold yellow]OUTPUT:[/bold yellow]
       [12345678] REST Reference (2026-05-17)
       [87654321] Buy milk (2026-05-16)
+      
+    [bold yellow]MORE INFO[/bold yellow]
+      Sort options and default sort order:
+        - date(default): desc(recents first)
+        - title: asc(A-Z) 	
     """
-
-    service = get_service()
-    presenter = NotePresenter()
-    console = Console()
-
-    use_case = ListNotesUseCase(service)
-
+    deps = get_dependencies()
     try:
+        if asc and desc:
+       	 deps.console.warning("Got both --asc and --desc, using --asc")
+       	 asc = True
+       	 desc = None
+        if limit:
+        	if limit <= 0:
+        		deps.console.warning("Invalid --limit, must be higher than 0")
+        		limit = None
         unique_tags = (
             list(dict.fromkeys(tags))
             if tags
             else None
         )
 
-        result = use_case.execute(
+        result = deps.list_notes.execute(
             tags=unique_tags,
             sort_by=sort_by,
             limit=limit,
+            asc=asc,
             desc=desc,
+            multiple=multiple_tags,
         )
 
         rendered_items = [
-            presenter.format(item)
+            deps.presenter.format(item)
             for item in result.items
         ]
 
         if result.groups:
             rendered_groups = {
                 tag: [
-                    presenter.format(item)
+                    deps.presenter.format(item)
                     for item in items
                 ]
                 for tag, items in result.groups.items()
             }
 
-            console.list_notes(
+            deps.console.list_notes(
                 items=rendered_items,
                 groups=rendered_groups,
                 filters=result.filters,
             )
 
         else:
-            console.list_notes(
+            deps.console.list_notes(
                 items=rendered_items,
                 title="Notes",
                 filters=result.filters,
             )
 
     except EmptyStorageError as e:
-        console.error(e)
+        deps.console.error(e)
     except NotesNotFoundError as e:
-    	console.error(e)
+    	deps.console.error(e)
+    except InvalidNoteError as e:
+    	deps.console.error(e)

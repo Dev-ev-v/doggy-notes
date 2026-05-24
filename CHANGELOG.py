@@ -1,5 +1,21 @@
 # CHANGELOG.md
 
+## [2.1.2] - 2026-05-24
+
+### Added
+
+- Export, logs and backup paths structure for future updates
+- schema_version table created to update automatically older notes. Not useful now in the first version, but this will keep the storage working when I change the note structure for example.  A essencial feature in this project
+
+### Changed
+
+- Non dangerous commands (read and list) now warn the user instead of raise errors when something bad happens but not important, such as choosing two selection types at the same time for example
+- dependencies.py used as a centralized import to cli commands.  This change remove desnecessary and repetitive import lines and make tests and changes easier
+
+### Fixed
+
+- Sort list works correctly in list command.  The sorting was broken because --desc was treated as a synonym for reverse, and since there was no --asc option, when sorting by date we always got the most recent entries at the top, there was no way to reverse that
+
 ## [2.1.1] - 2026-05-22
 
 ### Added

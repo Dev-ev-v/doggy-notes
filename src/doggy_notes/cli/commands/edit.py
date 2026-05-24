@@ -3,12 +3,8 @@ import tempfile
 import subprocess
 import typer
 from typing import Optional
-from doggy_notes.domain.entities.note import Note
-from doggy_notes.cli.dependencies import get_service
-from doggy_notes.cli.parsers.note_parser import NoteParser
-from doggy_notes.presentation.presenters.note_presenter import NotePresenter
-from doggy_notes.cli.console import Console
-from doggy_notes.application.use_cases.edit_note import EditNoteUseCase
+
+from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.exceptions.note_errors import (
 	NotesNotFoundError,
 	InvalidNoteError,
@@ -103,11 +99,7 @@ Modify note metadata or content interactively
   [bold]Previous tags:[/bold] api, documentation
   [bold]New tags:[/bold] api, documentation, projects, CLI
 """
-    service = get_service()
-    parser = NoteParser()
-    presenter = NotePresenter()
-    console = Console()
-    use_case = EditNoteUseCase(service)
+    deps = get_dependencies()
     try:
     	VALID_FIELDS = {"content", "title", "description", "tags"}
     	if field not in VALID_FIELDS:
@@ -115,8 +107,8 @@ Modify note metadata or content interactively
     			raise InvalidNoteError("field", "ID cannot be changed")
     		else:
     			raise InvalidNoteError("field", f"{field} is not a valid value of note")
-    	note_id = parser.parse_id(note_id)
-    	note = use_case.resolve_note(note_id)
+    	note_id = deps.parser.parse_id(note_id)
+    	note = deps.edit_note.resolve_note(note_id)
     	value = getattr(note, field, None)
     	old_text = getattr(note, field, None) if value else ""
     	if field == "tags":
@@ -125,20 +117,20 @@ Modify note metadata or content interactively
     		new_text = open_editor(old_text)
 
     	if new_text != old_text:
-    		use_case.execute(
+    		deps.edit_note.execute(
     			note, 
     			field, 
     			new_text
     		) 
-    		console.success("Note successfully updated")
-    		console.note(presenter.format(note))
-    		console.write(f"[bold]Previous {field}:[/bold] {old_text}")
-    		console.write(f"[bold]New {field}:[/bold] {new_text}")
+    		deps.console.success("Note successfully updated")
+    		deps.console.note(deps.presenter.format(note))
+    		deps.console.write(f"[bold]Previous {field}:[/bold] {old_text}")
+    		deps.console.write(f"[bold]New {field}:[/bold] {new_text}")
     	else:
-    		console.warning("No changes detected")   	    	
+    		deps.console.warning("No changes detected")   	    	
     except NotesNotFoundError as e:
-    	console.error(e)
+    	deps.console.error(e)
     	raise typer.Exit(code=2)
     except InvalidNoteError as e:
-    	console.error(e)
+    	deps.console.error(e)
     	raise typer.Exit(code=2)

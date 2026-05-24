@@ -1,15 +1,11 @@
 import typer
 from typing import Optional, List
-from doggy_notes.domain.entities.note import Note
-from doggy_notes.cli.dependencies import get_service
-from doggy_notes.cli.parsers.note_parser import NoteParser
-from doggy_notes.cli.console import Console
-from doggy_notes.presentation.presenters.note_presenter import ErrorsPresenter
-from doggy_notes.application.use_cases.read_note import ReadNoteUseCase
+
+from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.exceptions.note_errors import (
+    EmptyStorageError,
     NotesNotFoundError,
     InvalidNoteError,
-    EmptyStorageError,
 )
 
 def read(
@@ -24,15 +20,15 @@ def read(
         help="Read all notes with these tags (repeat option for multiple)",
     ),
     fields: list[str] = typer.Option(
-    	None,
+        None,
         "--field",
         "-f",
         help="Field to display: 'content', 'title', 'description', or 'tags'",
     ),
     entire: bool = typer.Option(
-    	False,
-    	"--entire",
-    	help="Display all fields (title, description, content, and tags)",
+        False,
+        "--entire",
+        help="Display all fields (title, description, content, and tags)",
     ),
 ):
     """
@@ -89,27 +85,30 @@ and content clearly separated.
     [bold]Content:[/bold]
     API Endpoints documentation for v2 integration...
 """
-    service = get_service()
-    parser = NoteParser()
-    console = Console()
-    use_case = ReadNoteUseCase(service)
+    deps = get_dependencies()
+
     try:
         if note_ids:
-       	 note_ids = [parser.parse_id(id) for id in note_ids]
-       	 note_ids = list(dict.fromkeys(note_ids))
+            note_ids = [deps.parser.parse_id(id) for id in note_ids]
+            note_ids = list(dict.fromkeys(note_ids))
         if tags:
-        	tags = parser.parse_tags(tags)       
+            tags = deps.parser.parse_tags(tags)
         if fields and entire:
-       	 raise InvalidNoteError("filter", "Use fields OR entire, not both")
-        	
-        formatted = use_case.execute(ids=note_ids, tags=tags, fields=fields, entire=entire)
-        console.read(formatted)
+            deps.console.warning("Use fields OR entire, not both. Using entire")
+            fields = None
+
+        if note_ids and tags:
+            deps.console.warning("Use ids OR tags, not both.  Using tags")
+            note_ids = None
+
+        formatted = deps.read_notes.execute(ids=note_ids, tags=tags, fields=fields, entire=entire)
+        deps.console.read(formatted)
     except NotesNotFoundError as e:
-    	console.error(e)
-    	raise typer.Exit(code=2)
+        deps.console.error(e)
+        raise typer.Exit(code=2)
     except InvalidNoteError as e:
-        console.error(e)
+        deps.console.error(e)
         raise typer.Exit(code=2)
     except EmptyStorageError as e:
-        console.error(e)
+        deps.console.error(e)
         raise typer.Exit(code=2)

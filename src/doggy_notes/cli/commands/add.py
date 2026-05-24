@@ -1,15 +1,8 @@
 import typer
 from typing import Optional, List
 
-from doggy_notes.domain.exceptions.note_errors import (
-    InvalidNoteError,
-)
-
-from doggy_notes.cli.dependencies import get_service
-from doggy_notes.application.use_cases.create_note import CreateNoteUseCase
-from doggy_notes.cli.parsers.note_parser import NoteParser
-from doggy_notes.presentation.presenters.note_presenter import NotePresenter
-from doggy_notes.cli.console import Console
+from doggy_notes.domain.exceptions.note_errors import InvalidNoteError
+from doggy_notes.cli.dependencies import get_dependencies
 
 def add(
     content: str = typer.Argument(
@@ -53,18 +46,15 @@ Store notes quickly with optional metadata.
   [bold green][OK] Note successfully created[/bold green]
   [12345678] REST Reference (2026-05-17)        
 """
-    parser = NoteParser()
-    service = get_service()
-    use_case = CreateNoteUseCase(service)
-    presenter = NotePresenter()
-    console = Console()
+    deps = get_dependencies()  
+    
     try:
         if not title:
             title = "Untitled"
         if tags:
-       	 tags = parser.parse_tags(tags)
-        note = use_case.execute(content=content, title=title, description=description, tags=tags)
-        console.success("Note successfully created")
-        console.note(presenter.format(note))
+            tags = deps.parser.parse_tags(tags) 
+        note = deps.create_note.execute(content=content, title=title, description=description, tags=tags)
+        deps.console.success("Note successfully created")
+        deps.console.note(deps.presenter.format(note))
     except InvalidNoteError as e:
-        console.error(e)
+        deps.console.error(e)

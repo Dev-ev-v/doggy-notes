@@ -12,7 +12,7 @@ from doggy_notes.domain.exceptions.note_errors import (
 )
 
 
-class ReadNoteUseCase:
+class ReadNotesUseCase:
 
     def __init__(self, service):
         self.service = service

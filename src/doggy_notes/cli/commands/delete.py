@@ -1,9 +1,6 @@
 import typer
 from typing import Optional, List
-from doggy_notes.application.use_cases.delete_notes import DeleteNotesUseCase
-from doggy_notes.cli.dependencies import get_service
-from doggy_notes.cli.parsers.note_parser import NoteParser
-from doggy_notes.cli.console import Console
+from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.exceptions.note_errors import (
     EmptyStorageError,
     NotesNotFoundError,
@@ -58,35 +55,34 @@ before execution.
   y, n: y
   [bold green][OK] 5 notes deleted[/bold green]
 """
-    parser = NoteParser()
-    service = get_service()
-    use_case = DeleteNotesUseCase(service)
-    console = Console()
+    deps = get_dependencies()
     try:
+        if all and note_ids or all and tags:
+        	raise InvalidNoteError("args", "Use --all without any other selection methods")
         if note_ids:
-        	note_ids = [parser.parse_id(id) for id in note_ids]
+        	note_ids = [deps.parser.parse_id(id) for id in note_ids]
         	note_ids = list(dict.fromkeys(note_ids))
         if tags:
-        	tags = parser.parse_tags(tags)  
+        	tags = deps.parser.parse_tags(tags)  
         if not note_ids and not tags:
         	if not delete_all:
         		raise InvalidNoteError("args", "Use --all to delete all saves notes or a valid filter")      	
-        result = use_case.resolve_notes(
+        result = deps.delete_notes.resolve_notes(
         	ids=note_ids,
             tags=tags,
             delete_all=delete_all,
         )
-        confirmed = use_case.get_confirmation(result)
+        confirmed = deps.delete_notes.get_confirmation(result)
         if not confirmed:
-            console.error("Operation cancelled")
+            deps.console.error("Operation cancelled")
             return
-        use_case.execute(result)
-        console.success(f"Notes deleted")
+        deps.delete_notes.execute(result)
+        deps.console.success(f"Notes deleted")
     except NotesNotFoundError as e:
-    	console.error(f"Invalid filters - {e}")
+    	deps.console.error(f"Invalid filters - {e}")
     	raise typer.Exit(code=2)
     except EmptyStorageError as e:
-   	 console.error(f"No notes found - {e}")
+   	 deps.console.error(f"No notes found - {e}")
     except InvalidNoteError as e:
-        console.error(e)
+        deps.console.error(e)
     

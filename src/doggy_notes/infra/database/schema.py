@@ -22,6 +22,16 @@ def ensure_schema(db_path: Path) -> None:
                     tags TEXT,
                     date TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                );
+            """)
+
+            conn.execute("""
+                INSERT OR IGNORE INTO metadata (key, value)
+                VALUES ('schema_version', '1')
             """)
 
         logger.info(

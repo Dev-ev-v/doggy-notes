@@ -5,7 +5,7 @@ except ImportError:
     from importlib.metadata import version as _version
     __version__ = _version("doggy-notes")
 
-from doggy_notes.cli.dependencies import initialize_database
+from doggy_notes.cli.dependencies import get_container
 from doggy_notes.cli.commands.add import add
 from doggy_notes.cli.commands.list_func import list_func
 from doggy_notes.cli.commands.delete import delete
@@ -40,7 +40,7 @@ def root(
     if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
     else:
-    	initialize_database()
+    	get_container().initialize_database()
 
 app.command()(add)
 app.command(name="list")(list_func)

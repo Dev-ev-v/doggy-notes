@@ -12,6 +12,17 @@ class SQLiteNoteRepository(NoteRepository):
         self.conn = sqlite3.connect(str(db_path))
         self.conn.row_factory = sqlite3.Row
 
+    def get_schema_version(self) -> int:
+        cursor = self.conn.execute("""
+            SELECT value
+            FROM metadata
+            WHERE key = 'schema_version'
+        """)
+        row = cursor.fetchone()
+        if row is None:
+            return 0
+        return int(row[0])
+
     def create(self, note: Note) -> None:
         self.conn.execute("""
             INSERT INTO notes
@@ -24,7 +35,7 @@ class SQLiteNoteRepository(NoteRepository):
         self.conn.execute("""
             UPDATE notes
             SET
-            	content = ?,
+                content = ?,
                 title = ?,
                 description = ?,
                 tags = ?,
@@ -46,22 +57,22 @@ class SQLiteNoteRepository(NoteRepository):
             "SELECT * FROM notes WHERE substr(id, 1, 8) = ?",
             (short_id,)
         )
-        rows = cursor.fetchall()        
+        rows = cursor.fetchall()
         if len(rows) > 1:
             raise ValueError(
                 f"Short ID collision: {len(rows)} notes found for '{short_id}'"
-            )        
+            )
         return self._map_row(rows[0]) if rows else None
 
     def get_by_tag(self, tag: str) -> list[Note]:
-        normalized_tags = NoteParser.parse_tags([tag])        
+        normalized_tags = NoteParser.parse_tags([tag])
         if not normalized_tags:
-            return []        
-        normalized = normalized_tags[0].casefold()        
+            return []
+        normalized = normalized_tags[0].casefold()
         cursor = self.conn.execute(
             "SELECT * FROM notes WHERE ',' || tags || ',' LIKE ?",
             (f"%,{normalized},%",)
-        )        
+        )
         return self._map_rows(cursor.fetchall())
 
     def get_all(self) -> list[Note]:
@@ -76,7 +87,7 @@ class SQLiteNoteRepository(NoteRepository):
             (note.id,)
         )
         self.conn.commit()
-        
+
     def _map_row(self, row) -> Note | None:
         return NoteMapper.from_row(row) if row else None
 
