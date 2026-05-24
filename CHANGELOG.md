@@ -15,6 +15,8 @@
 ### Fixed
 
 - Sort list works correctly in list command.  The sorting was broken because --desc was treated as a synonym for reverse, and since there was no --asc option, when sorting by date we always got the most recent entries at the top, there was no way to reverse that
+- Previously, the limit could be equal to 0, resulting in a warning message.  Now limit must be higher than 0
+- Variable "delete_all" confuded to "all" in delete.py file solved.  This problem was raising a wrong error message
 
 ## [2.1.1] - 2026-05-22
 
