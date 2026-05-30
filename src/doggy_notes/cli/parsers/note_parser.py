@@ -1,15 +1,32 @@
 import re
 import unicodedata 
-from doggy_notes.domain.exceptions.note_errors import InvalidNoteError
+from doggy_notes.domain.exceptions.note_errors import NoteException
 
 class NoteParser:
 
     @staticmethod
-    def parse_id(raw_input: str) -> str:
-        return re.sub(r'^[\[\]()\s]+|[\[\]()\s]+$', '', raw_input)
+    def parse_id(id: str) -> str:
+        if not id:
+        	return ""
+        return re.sub(r'^[\[\]()\s]+|[\[\]()\s]+$', '', id)
+    
+    @staticmethod
+    def parse_ids(ids: list[str]) -> list[str]:
+    	if not ids:
+    		return []
+    	normalized_ids = []
+    	seen = set()
+    	for id in ids:
+    		if not id in seen:
+    			id = NoteParser.parse_id(id)
+    			seen.add(id)
+    			normalized_ids.append(id)
+    	return normalized_ids
 
     @staticmethod 
     def parse_tags(tags: list[str]) -> list[str]:
+        if not tags:
+        	return []
         normalized_tags = []
         seen = set()
         for raw_tag in tags:

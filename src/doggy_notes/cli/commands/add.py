@@ -1,7 +1,7 @@
 import typer
 from typing import Optional, List
 
-from doggy_notes.domain.exceptions.note_errors import InvalidNoteError
+from doggy_notes.domain.exceptions.note_errors import NoteException
 from doggy_notes.cli.dependencies import get_dependencies
 
 def add(
@@ -51,10 +51,9 @@ Store notes quickly with optional metadata.
     try:
         if not title:
             title = "Untitled"
-        if tags:
             tags = deps.parser.parse_tags(tags) 
         note = deps.create_note.execute(content=content, title=title, description=description, tags=tags)
         deps.console.success("Note successfully created")
         deps.console.note(deps.presenter.format(note))
-    except InvalidNoteError as e:
+    except NoteException as e:
         deps.console.error(e)

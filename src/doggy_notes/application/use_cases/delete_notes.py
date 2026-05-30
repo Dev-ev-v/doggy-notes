@@ -5,11 +5,7 @@ from doggy_notes.presentation.presenters.note_presenter import (
 
 from doggy_notes.cli.console import Console
 
-from doggy_notes.domain.exceptions.note_errors import (
-    EmptyStorageError,
-    NotesNotFoundError,
-    InvalidNoteError,
-)
+from doggy_notes.domain.exceptions.note_errors import NoteNotFoundError, NoteEmptyStorageError
 
 
 class DeleteNotesUseCase:
@@ -22,10 +18,12 @@ class DeleteNotesUseCase:
         ids: list[str] | None = None,
         tags: list[str] | None = None,
         delete_all: bool = False,
+        mode: str = "AND",
     ):
         result = self.service.get(
             ids=ids,
             tags=tags,
+            mode=mode,
         )
 
         if result.is_empty:
@@ -35,10 +33,11 @@ class DeleteNotesUseCase:
             		filters["tags"] = tags 
             	if ids:
             		filters["ids"] = ids 
-            	raise NotesNotFoundError(
-            			ErrorsPresenter.format_errors(filters)
+            	raise NoteNotFoundError(
+            			filters=ErrorsPresenter.format_errors(filters),
+            			message="No notes found with the applied filters"
             	)
-            raise EmptyStorageError("Empty storage, create a note first")
+            raise NoteEmptyStorageError("Empty storage, create a note first")
 
         return result
 

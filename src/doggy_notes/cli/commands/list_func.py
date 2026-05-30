@@ -1,11 +1,13 @@
 import typer
 from typing import Optional, List
+from dataclasses import field
+from doggy_notes.infra.paths import build_paths
 
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.exceptions.note_errors import (
-    EmptyStorageError,
-    NotesNotFoundError,
-    InvalidNoteError,
+	NoteEmptyStorageError,
+	SearchFilterError,
+	NoteNotFoundError,
 )
 
 
@@ -36,6 +38,16 @@ def list_func(
         "--desc",
         help="Sort in descending order",
     ),
+    mode: Optional[str] = typer.Option(
+    	"AND",
+    	"--mode",
+    	help="Select the search mode between AND or OR",
+    ),
+    path: Optional[str] = typer.Option(
+		None,
+		"--path",
+		help="Lists a path from doggy-notes"    
+    )
 ):
     """
     [bold cyan]List all saved notes or search by tags[/bold cyan]
@@ -73,20 +85,19 @@ def list_func(
         - title: asc(A-Z) 	
     """
     deps = get_dependencies()
-    try:
+    try:      	  	
+        #ASC AND DESC
         if asc and desc:
        	 deps.console.warning("Got both --asc and --desc, using --asc")
        	 asc = True
        	 desc = None
+        #LIMIT
         if isinstance(limit, int):
         	if limit <= 0:
         		deps.console.warning("Invalid --limit, must be higher than 0")
         		limit = None
-        unique_tags = (
-            list(dict.fromkeys(tags))
-            if tags
-            else None
-        )
+        
+        unique_tags = deps.parser.parse_tags(tags)
 
         result = deps.list_notes.execute(
             tags=unique_tags,
@@ -94,6 +105,7 @@ def list_func(
             limit=limit,
             asc=asc,
             desc=desc,
+            mode=mode,
         )
 
         rendered_items = [
@@ -123,9 +135,9 @@ def list_func(
                 filters=result.filters,
             )
 
-    except EmptyStorageError as e:
+    except NoteEmptyStorageError as e:
         deps.console.error(e)
-    except NotesNotFoundError as e:
+    except NoteNotFoundError as e:
     	deps.console.error(e)
-    except InvalidNoteError as e:
+    except SearchFilterError as e:
     	deps.console.error(e)

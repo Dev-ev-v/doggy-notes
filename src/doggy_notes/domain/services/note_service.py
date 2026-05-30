@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from doggy_notes.domain.exceptions.note_errors import InvalidNoteError
+from doggy_notes.domain.exceptions.note_errors import NoteValidationError, SearchFilterError
 from doggy_notes.application.dto.query_result import QueryResult
 
 
@@ -31,18 +31,23 @@ class NoteService:
         self,
         ids: Optional[list[str]] = None,
         tags: Optional[list[str]] = None,
+        mode: Optional[str] = "AND",
     ) -> QueryResult:
         if ids and tags:
-            raise InvalidNoteError(
-                "filter",
-                "Use ids OR tags, not both"
+            raise SearchFilterError(
+                "Use ids OR tags, not both",
             )
 
         if ids:
             return self._get_by_ids(ids)
 
         if tags:
-            return self._get_by_tags(tags)
+            modes = ["AND", "OR"]
+            mode = mode.upper()
+            if not mode in modes:
+            	deps.console.warning("Invalid mode value, using AND")
+            	mode = "AND"
+            return self._get_by_tags(tags, mode)
 
         return self._get_all()
 
@@ -51,9 +56,9 @@ class NoteService:
             return
 
         if len(note.title) > self.config.max_title_length:
-            raise InvalidNoteError(
+            raise NoteValidationError(
                 "title",
-                f"Title exceeds maximum length of {self.config.max_title_length}"
+                f"Title exceeds maximum length of {self.config.max_title_length}",
             )
 
     def _get_by_ids(self, ids: list[str]) -> QueryResult:
@@ -68,12 +73,23 @@ class NoteService:
             filters={"ids": ids},
         )
 
-    def _get_by_tags(self, tags: list[str]) -> QueryResult:
+    def _get_by_tags(self, tags: list[str], mode: str) -> QueryResult:
         groups = {}
-        for tag in tags:
-            result = self.repo.get_by_tag(tag)
-            groups[tag] = result if isinstance(result, list) else [result] if result else []
-        items = self._flatten_groups(groups)
+        result = self.repo.get_by_tags(tags, mode)
+        
+        if mode =="OR":
+        	for note in result:
+        	       for tag in note.tags:
+        	            if tag not in groups:
+        	            	if tag in tags:
+        	            		groups[tag] = []
+        	            		groups[tag].append(note)
+        
+        elif mode == "AND":
+        	groups[", ".join(tags)] = result         
+
+        items = list({note.id: note for note in result}.values())
+
         return QueryResult(
             items=items,
             groups=groups,

@@ -6,8 +6,9 @@ from typing import Optional
 
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.exceptions.note_errors import (
-	NotesNotFoundError,
-	InvalidNoteError,
+	NoteEmptyStorageError,
+	SearchFilterError,
+	NoteNotFoundError,
 )
 
 def open_editor(initial_text: str) -> str:
@@ -101,12 +102,15 @@ Modify note metadata or content interactively
 """
     deps = get_dependencies()
     try:
+    	#FIELDS
     	VALID_FIELDS = {"content", "title", "description", "tags"}
+    	INVALID_FIELDS = {"id", "date"}
     	if field not in VALID_FIELDS:
-    		if field == "id":
-    			raise InvalidNoteError("field", "ID cannot be changed")
+    		if field in INVALID_FIELDS:
+    			raise SearchFilterError(f"{field} cannot be changed")
     		else:
-    			raise InvalidNoteError("field", f"{field} is not a valid value of note")
+    			raise SearchFilterError(f"{field} is not a valid value of note")
+    			
     	note_id = deps.parser.parse_id(note_id)
     	note = deps.edit_note.resolve_note(note_id)
     	value = getattr(note, field, None)
@@ -128,9 +132,9 @@ Modify note metadata or content interactively
     		deps.console.write(f"[bold]New {field}:[/bold] {new_text}")
     	else:
     		deps.console.warning("No changes detected")   	    	
-    except NotesNotFoundError as e:
+    except NoteNotFoundError as e:
     	deps.console.error(e)
     	raise typer.Exit(code=2)
-    except InvalidNoteError as e:
+    except SearchFilterError as e:
     	deps.console.error(e)
     	raise typer.Exit(code=2)

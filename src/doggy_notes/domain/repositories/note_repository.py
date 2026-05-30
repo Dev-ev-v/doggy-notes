@@ -20,7 +20,7 @@ class NoteRepository(ABC):
     	pass
     
     @abstractmethod
-    def get_by_tag(self, tag: str) -> list[Note]:
+    def get_by_tags(self, tags: list[str], mode: str) -> list[Note]:
     	pass		
 
     @abstractmethod

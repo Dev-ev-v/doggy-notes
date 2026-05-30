@@ -1,5 +1,29 @@
 # CHANGELOG.md
 
+## [2.2.0] - 2026-05-29
+
+### Added
+
+- Tags table created to make future searches easier, more precise, faster, and cleaner. Users can use the --mode option in commands that require tags to specify the search mode, now supporting AND (default) or OR
+- Import structure created in migrations.py, but not yet available
+- Users can now read or inspect the structure of a path inside doggy-notes using the info command. This is useful for viewing the structure of a path or reading any file
+
+### Changed
+
+- info command now shows all doggy-notes paths for a more transparent system
+note_errors.py updated with better error names. No breaking changes for the user
+- Refactor of note_errors.  Each error can have a code, message or context.  Different error names to make the errors more transparent
+
+### Fixed
+
+- Previously, notes were deleted in migrations.py during a migration without user permission if the package name matched a previously existing doggy package name. An import structure with explicit user permission has now been created to prevent this
+- During a migration, notes were not being deleted from the previous package. This has been fixed
+- Wrong field name fixed in the read command; an output warning is now raised accordingly
+- Tags were searched using notes, where tags were placed with commas in the start and in the end.  This is an anti-pattern search method, fixed with the tags table
+- Similar tags could be select instead of only the tags that the user called.  Fixed with the tags table
+
+###
+
 ## [2.1.2] - 2026-05-24
 
 ### Added

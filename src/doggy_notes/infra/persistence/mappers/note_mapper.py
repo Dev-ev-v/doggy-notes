@@ -1,29 +1,25 @@
-# storage/mappers.py
-from doggy_notes.domain.entities.note import Note
 from datetime import datetime
+from doggy_notes.domain.entities.note import Note
+
 
 class NoteMapper:
     @staticmethod
     def to_row(note: Note):
-        tags = "," + ",".join(
-            sorted(set(t.strip().lower() for t in note.tags))
-) + ","
         return (
-        	note.content,
+            note.content,
             note.title,
             note.description,
-            tags,
-            note.date.isoformat(),
+            note.date.isoformat() if isinstance(note.date, datetime) else note.date,
             note.id,
         )
 
     @staticmethod
-    def from_row(row):
+    def from_row(row) -> Note:
         return Note(
             content=row["content"],
             title=row["title"],
             description=row["description"],
-            tags = [t.strip().lower() for t in row["tags"].split(",") if t.strip()],
+            tags=[],
             date=datetime.fromisoformat(row["date"]),
             id=row["id"]
         )

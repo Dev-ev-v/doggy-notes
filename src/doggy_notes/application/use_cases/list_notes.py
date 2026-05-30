@@ -1,7 +1,7 @@
 from doggy_notes.domain.exceptions.note_errors import (
-    EmptyStorageError,
-    NotesNotFoundError,
-    InvalidNoteError,
+	NoteEmptyStorageError,
+	SearchFilterError,
+	NoteNotFoundError,
 )
 
 from doggy_notes.presentation.presenters.note_presenter import (
@@ -36,20 +36,22 @@ class ListNotesUseCase:
         limit: int | None = None,
         asc: bool | None = None,
         desc: bool | None = None,
+        mode: str = "AND",
     ):
-        result = self.service.get(tags=tags)
+        result = self.service.get(tags=tags, mode=mode)
         if result.is_empty:
             if tags:
                 filters = {}
                 filters["tags"] = tags
-                raise NotesNotFoundError(
+                raise NoteNotFoundError(
                     ErrorsPresenter.format_errors(filters)
                 )
-            raise EmptyStorageError("Empty storage, create a note first")
+            raise NoteEmptyStorageError("Empty storage, create a note first")
 
         if sort_by not in self.SORT_DEFAULTS:
-            raise InvalidNoteError(
-                "--sort", f"{sort_by} is not a valid value or --sort"
+            raise SearchFilterError(
+                f"{sort_by} is not a valid value or --sort",
+                filters="sort"
             )
             
         reverse = False if asc else desc

@@ -13,13 +13,12 @@ class Paths:
     config_dir: Path
     data_dir: Path
     cache_dir: Path
+    backups_dir: Path
+    exports_dir: Path
 
     config_file: Path
     database_file: Path
-
-    backups_dir: Path
-    exports_dir: Path
-    logs_dir: Path
+    logs_file: Path
 
 def build_paths() -> Paths:
     
@@ -29,7 +28,6 @@ def build_paths() -> Paths:
     
     backups_dir = Path(data_dir / "backups")   
     exports_dir = Path(data_dir / "exports")    
-    logs_dir = Path(cache_dir / "logs")
     
     for d in (
     	config_dir,
@@ -37,16 +35,15 @@ def build_paths() -> Paths:
     	cache_dir,
     	backups_dir,
    	 exports_dir,
-  	  logs_dir,
 	):
    	 d.mkdir(parents=True, exist_ok=True)
-   	 return Paths(
-      	  config_dir=config_dir,
-      	  data_dir=data_dir,
-      	  cache_dir=cache_dir,
-      	  backups_dir=backups_dir,
-      	  exports_dir=exports_dir,
-      	  logs_dir=logs_dir,      	  
-   	     config_file=config_dir / "config.toml",
-   	     database_file=data_dir / "doggy_notes.db",
-	    )
+    return Paths(
+        config_dir=config_dir,
+        data_dir=data_dir,
+        cache_dir=cache_dir,
+        backups_dir=backups_dir,
+        exports_dir=exports_dir,
+        logs_file=cache_dir / "logs.txt",      	  
+   	 config_file=config_dir / "config.toml",
+   	 database_file=data_dir / "doggy_notes.db",
+	)

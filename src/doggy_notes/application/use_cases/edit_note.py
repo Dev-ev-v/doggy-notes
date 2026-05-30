@@ -1,11 +1,19 @@
 import typer
+import logging
+
 from doggy_notes.cli.parsers.note_parser import NoteParser
+
 from doggy_notes.domain.exceptions.note_errors import (
-	NotesNotFoundError,
+	NoteEmptyStorageError,
+	SearchFilterError,
+	NoteNotFoundError,
 )
+
 from doggy_notes.presentation.presenters.note_presenter import (
     ErrorsPresenter,
 )
+
+logger = logging.getLogger(__name__)
 
 class EditNoteUseCase:
 	def __init__(self, service):
@@ -17,15 +25,18 @@ class EditNoteUseCase:
 		if not note:
 			filters = {}
 			filters["id"] = [id]
-			raise NotesNotFoundError(ErrorsPresenter.format_errors(filters))
+			raise NoteNotFoundError(ErrorsPresenter.format_errors(filters))
 		return note
 		
 	def execute(self, note, field: str, text: str):
 	   parser = NoteParser()
 	   if field == "tags":
-	       tags = text.splitlines()
+	       tags = [tag.strip() for tag in text.split(',')]
+	       print(tags)
 	       parsed = parser.parse_tags(tags)
 	   else:
 	   	parsed = text
 	   setattr(note, field, parsed)
-	   self.service.update(note)		
+	   result = self.service.update(note)		
+	   logger.info(f"note_tags: {note.tags}")
+	   logger.info(result)

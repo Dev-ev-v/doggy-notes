@@ -1,8 +1,13 @@
 import sys
 import typer
+import os
+from typing import Optional
+from dataclasses import fields
 from importlib.metadata import metadata, version, PackageNotFoundError
 from pathlib import Path
+
 from doggy_notes.infra.paths import build_paths
+from doggy_notes.cli.console import Console
 
 APP_NAME = "doggy-notes"
 
@@ -20,10 +25,58 @@ def _get_project_urls(pkg):
 def _status(path: Path) -> str:
     return "✓" if path.exists() else "✗"
 
-def info():
+def _show_path(console: Console, path: str, Paths) -> None:
+    field_map = {f.name: getattr(Paths, f.name) for f in fields(Paths)}
+
+    parts = Path(path).parts
+    root_name = parts[0]
+
+    if root_name not in field_map:
+        console.write(f"{root_name!r} not found. Available: {', '.join(field_map)}")
+        return
+
+    value = Path(field_map[root_name]).joinpath(*parts[1:])
+
+    if not value.exists():
+        console.write(f"{value} (not found)")
+        return
+
+    console.info(f"Path: {value}")
+
+    if value.is_dir():
+        children = list(value.iterdir())
+        if not children:
+            console.write("No children found")
+            return
+        console.info(f"Children of {path}:")
+        console.write(path)
+        for child in sorted(children):
+            console.write(f"  |  {child.name}")
+            if child.is_dir():
+                for grandchild in sorted(child.iterdir()):
+                    console.write(f"    |  {grandchild.name}")
+
+    elif value.is_file():
+        console.info(f"Reading {path}")
+        console.read(value.read_text())
+
+def info(
+    path: Optional[str] = typer.Option(
+    	None,
+        "--path",
+        help="Search a path in doggy-notes",
+    ),
+):
     """[bold cyan]Show detailed information about the installation and environment[/bold cyan]"""
+    
+    console = Console()
+    
+    Paths = build_paths()
 
     try:
+        if path:
+        	_show_path(console, path, Paths)
+        	return
         pkg = metadata(APP_NAME)
         pkg_version = version(APP_NAME)
     except PackageNotFoundError:
@@ -31,12 +84,6 @@ def info():
         raise typer.Exit(code=1)
 
     urls = _get_project_urls(pkg)
-
-    Paths = build_paths()    
-    config_dir = Paths.config_dir
-    config_file = Paths.config_file
-    data_dir = Paths.data_dir
-    cache_dir = Paths.cache_dir    
 
     typer.secho("Doggy Notes - Runtime Info\n", bold=True)
 
@@ -49,10 +96,9 @@ def info():
     typer.echo()
 
     typer.echo("Paths")
-    typer.echo(f"  Config dir:  {config_dir} [{_status(config_dir)}]")
-    typer.echo(f"  Config file: {config_file} [{_status(config_file)}]")
-    typer.echo(f"  Data dir:    {data_dir} [{_status(data_dir)}]")
-    typer.echo(f"  Cache dir:   {cache_dir} [{_status(cache_dir)}]")
+    for field in fields(Paths):
+        value = getattr(Paths, field.name)
+        typer.echo(f"  {field.name}:  {value} [{_status(value)}]")
     typer.echo()
 
     typer.echo("Project")

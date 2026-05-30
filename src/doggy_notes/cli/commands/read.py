@@ -3,9 +3,9 @@ from typing import Optional, List
 
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.exceptions.note_errors import (
-    EmptyStorageError,
-    NotesNotFoundError,
-    InvalidNoteError,
+	NoteEmptyStorageError,
+	SearchFilterError,
+	NoteNotFoundError,
 )
 
 def read(
@@ -29,6 +29,11 @@ def read(
         False,
         "--entire",
         help="Display all fields (title, description, content, and tags)",
+    ),
+    mode: Optional[str] = typer.Option(
+    	"AND",
+    	"--mode",
+    	help="Select the search mode between AND or OR",
     ),
 ):
     """
@@ -88,11 +93,8 @@ and content clearly separated.
     deps = get_dependencies()
 
     try:
-        if note_ids:
-            note_ids = [deps.parser.parse_id(id) for id in note_ids]
-            note_ids = list(dict.fromkeys(note_ids))
-        if tags:
-            tags = deps.parser.parse_tags(tags)
+        note_ids = deps.parser.parse_ids(note_ids)
+        tags = deps.parser.parse_tags(tags)
         if fields and entire:
             deps.console.warning("Use fields OR entire, not both. Using entire")
             fields = None
@@ -101,14 +103,14 @@ and content clearly separated.
             deps.console.warning("Use ids OR tags, not both.  Using tags")
             note_ids = None
 
-        formatted = deps.read_notes.execute(ids=note_ids, tags=tags, fields=fields, entire=entire)
+        formatted = deps.read_notes.execute(ids=note_ids, tags=tags, fields=fields, entire=entire, mode=mode)
         deps.console.read(formatted)
-    except NotesNotFoundError as e:
+    except NoteNotFoundError as e:
         deps.console.error(e)
         raise typer.Exit(code=2)
-    except InvalidNoteError as e:
+    except SearchFilterError as e:
         deps.console.error(e)
         raise typer.Exit(code=2)
-    except EmptyStorageError as e:
+    except NoteEmptyStorageError as e:
         deps.console.error(e)
         raise typer.Exit(code=2)

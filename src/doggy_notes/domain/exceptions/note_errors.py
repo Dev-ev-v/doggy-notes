@@ -1,20 +1,116 @@
-class NoteError(Exception):
-    pass
+from typing import List, Optional, Dict, Any
+from dataclasses import dataclass, field
 
-class NotesNotFoundError(NoteError):
-    def __init__(self, filters: str):
-        self.filters = filters
-        super().__init__(f"No notes found with the applicated filters: {filters}")
+@dataclass
+class ErrorDetail:
+    code: str
+    message: str
+    context: Dict[str, Any] = field(default_factory=dict)
+    
+    def __str__(self) -> str:
+        if self.context:
+            context_str = " | ".join(f"{k}={v}" for k, v in self.context.items())
+            return f"[{self.code}] {self.message} ({context_str})"
+        return f"[{self.code}] {self.message}"
 
-class InvalidNoteError(NoteError):
-    def __init__(self, field: str, message: str):
-        self.field = field
+
+class NoteException(Exception):
+    
+    def __init__(self, message: str = "", code: str = "NOTE_ERROR"):
         self.message = message
-        super().__init__(f"Invalid {field}: {message}")
+        self.code = code
+        self.errors: List[ErrorDetail] = []
         
-class InvalidSearchError(NoteError):
-	def __init__(self, msg: str, filters: str):
-		super().__init__(f"{msg}: {filters}")
+        if message:
+            self.add_error(code, message)
+        
+        super().__init__(self._format_message())
+    
+    def add_error(self, code: str, message: str, context: Optional[Dict[str, Any]] = None) -> "NoteException":        
+        error = ErrorDetail(code=code, message=message, context=context or {})
+        self.errors.append(error)
+        return self
+    
+    def add_errors(self, errors: List[tuple]) -> "NoteException":     
+        for error_data in errors:
+            if len(error_data) == 3:
+                code, message, context = error_data
+                self.add_error(code, message, context)
+            else:
+                code, message = error_data
+                self.add_error(code, message)
+        return self
+    
+    def has_errors(self) -> bool:        
+        return len(self.errors) > 0
+    
+    def error_count(self) -> int:      
+        return len(self.errors)
+    
+    def _format_message(self) -> str:
+        if not self.errors:
+            return self.message or "Unknown error"
+        
+        if len(self.errors) == 1:
+            return str(self.errors[0])
+        
+        error_lines = [f"Many errors found ({len(self.errors)}):"]
+        for i, error in enumerate(self.errors, 1):
+            error_lines.append(f"  {i}. {error}")
+        
+        return "\n".join(error_lines)
+    
+    def __str__(self) -> str:
+        return self._format_message()
+    
+    def get_errors(self) -> List[ErrorDetail]:
+        return self.errors
+    
+    def get_error_codes(self) -> List[str]:
+        return [error.code for error in self.errors]
 
-class EmptyStorageError(NoteError):
-    pass
+
+class NoteNotFoundError(NoteException):
+    
+    def __init__(self, filters: Dict[str, Any], message: str = None):
+        msg = message or f"Any found notes with the applicated filters"
+        super().__init__(f"{msg}: \n{filters}", code="NOTE_NOT_FOUND")
+
+
+class NoteValidationError(NoteException):
+   
+    def __init__(self, field: str = "", message: str = "", validation_errors: List[tuple] = None):
+        self.field = field
+        
+        if validation_errors:
+            msg = f"Note(s) validation error"
+            super().__init__(msg, code="NOTE_VALIDATION_ERROR")
+            self.add_errors(validation_errors)
+        else:
+            msg = f"Failed validation in '{field}': {message}" if field else message
+            super().__init__(msg, code="NOTE_VALIDATION_ERROR")
+
+
+class SearchFilterError(NoteException):
+    
+    def __init__(self, message: str = "", filters: Dict[str, Any] = None):
+        super().__init__(message or "Search error", code="SEARCH_FILTER_ERROR")
+        if filters:
+            self.context = {"filters": filters}
+
+
+class NoteEmptyStorageError(NoteException):
+    
+    def __init__(self, message: str = None):
+        msg = message or "Notes storage empty"
+        super().__init__(msg, code="STORAGE_EMPTY")
+
+
+class NoteOperationError(NoteException):
+    
+    def __init__(self, operation: str = "", message: str = "", errors: List[tuple] = None):
+        msg = message or f"Error during operation: {operation}"
+        super().__init__(msg, code="NOTE_OPERATION_ERROR")
+        
+        if errors:
+            self.add_errors(errors)            
