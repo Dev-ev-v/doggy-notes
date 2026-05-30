@@ -43,11 +43,6 @@ def list_func(
     	"--mode",
     	help="Select the search mode between AND or OR",
     ),
-    path: Optional[str] = typer.Option(
-		None,
-		"--path",
-		help="Lists a path from doggy-notes"    
-    )
 ):
     """
     [bold cyan]List all saved notes or search by tags[/bold cyan]
