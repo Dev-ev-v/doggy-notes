@@ -18,17 +18,26 @@ from doggy_notes.application.use_cases.list_notes import ListNotesUseCase
 
 # === Presentation ===
 from doggy_notes.presentation.presenters.note_presenter import NotePresenter
+from doggy_notes.presentation.presenters.file_presenter import FilePresenter
+from doggy_notes.presentation.presenters.error_presenter import ErrorPresenter
 from doggy_notes.presentation.formatters.date_formatter import DateFormatter
 
 # === CLI ===
+from doggy_notes.cli.parsers.tag_parser import TagParser
+from doggy_notes.cli.parsers.id_parser import IDParser
 from doggy_notes.cli.console import Console
-from doggy_notes.cli.parsers.note_parser import NoteParser
+from doggy_notes.cli.help_messages import HelpMessages
 
 class CommandDependencies(NamedTuple):
     service: NoteService
     console: Console
-    parser: NoteParser
-    presenter: NotePresenter
+    tag_parser: TagParser
+    id_parser: IDParser
+    note_presenter: NotePresenter
+    error_presenter: ErrorPresenter
+    file_presenter: FilePresenter
+    date_formatter: DateFormatter
+    help_messages: HelpMessages
     
     create_note: CreateNoteUseCase
     read_notes: ReadNotesUseCase
@@ -65,6 +74,7 @@ class DIContainer:
         if not hasattr(self, '_repository'):
             self._repository = SQLiteNoteRepository(self.paths.database_file)
         return self._repository
+        
     
     # ===== Domain =====
     
@@ -83,22 +93,46 @@ class DIContainer:
         return self._console
     
     @property
-    def parser(self) -> NoteParser:
-        if not hasattr(self, '_parser'):
-            self._parser = NoteParser()
-        return self._parser
+    def tag_parser(self) -> TagParser:
+        if not hasattr(self, '_tag_parser'):
+            self._tag_parser = TagParser()
+        return self._tag_parser
+        
+    @property
+    def id_parser(self) -> IDParser:
+        if not hasattr(self, '_id_parser'):
+            self._id_parser = IDParser()
+        return self._id_parser
     
     @property
-    def presenter(self) -> NotePresenter:
-        if not hasattr(self, '_presenter'):
-            self._presenter = NotePresenter()
-        return self._presenter
+    def note_presenter(self) -> NotePresenter:
+        if not hasattr(self, '_note_presenter'):
+            self._note_presenter = NotePresenter()
+        return self._note_presenter
+        
+    @property
+    def error_presenter(self) -> ErrorPresenter:
+        if not hasattr(self, '_error_presenter'):
+            self._error_presenter = ErrorPresenter()
+        return self._error_presenter
+    
+    @property
+    def file_presenter(self) -> FilePresenter:
+        if not hasattr(self, '_file_presenter'):
+            self._file_presenter = FilePresenter()
+        return self._file_presenter                
     
     @property
     def date_formatter(self) -> DateFormatter:
         if not hasattr(self, '_date_formatter'):
             self._date_formatter = DateFormatter()
         return self._date_formatter
+        
+    @property
+    def help_messages(self) -> HelpMessages:
+        if not hasattr(self, '_help_messages'):
+            self._help_messages = HelpMessages()
+        return self._help_messages
     
     # ===== Use Cases =====
     
@@ -138,8 +172,13 @@ class DIContainer:
         return CommandDependencies(
             service=self.service,
             console=self.console,
-            parser=self.parser,
-            presenter=self.presenter,
+            tag_parser=self.tag_parser,
+            id_parser=self.id_parser,
+            note_presenter=self.note_presenter,
+            error_presenter=self.error_presenter,
+            file_presenter=self.file_presenter,
+            date_formatter=self.date_formatter,
+            help_messages=self.help_messages,
             create_note=self.create_note,
             read_notes=self.read_notes,
             delete_notes=self.delete_notes,

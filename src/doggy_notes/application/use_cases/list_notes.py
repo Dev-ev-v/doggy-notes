@@ -1,12 +1,14 @@
+from enum import Enum
+
 from doggy_notes.domain.exceptions.note_errors import (
-	NoteEmptyStorageError,
-	SearchFilterError,
-	NoteNotFoundError,
+    NoteEmptyStorageError,
+    SearchFilterError,
+    NoteNotFoundError,
 )
 
-from doggy_notes.presentation.presenters.note_presenter import (
-    ErrorsPresenter,
-)
+from doggy_notes.domain.enums.mode import Mode
+from doggy_notes.domain.enums.sort_direction import SortDirection
+from doggy_notes.domain.enums.sort_by import SortBy
 
 class ListNotesUseCase:
 
@@ -29,34 +31,24 @@ class ListNotesUseCase:
     def __init__(self, service):
         self.service = service
 
-    def execute(
+    def resolve_notes(
         self,
         tags: list[str] | None = None,
-        sort_by: str = "date",
+        sort_by: SortBy = SortBy.date,
         limit: int | None = None,
-        asc: bool | None = None,
-        desc: bool | None = None,
-        mode: str = "AND",
+        order: SortDirection = None,
+        mode: Mode = Mode.AND,
     ):
+        warnings = []
+        
+        limit_warning = self._check_limit(limit)
+        if limit_warning:
+        	warnings.append(limit_warning)
+        	limit = None
+       
         result = self.service.get(tags=tags, mode=mode)
-        if result.is_empty:
-            if tags:
-                filters = {}
-                filters["tags"] = tags
-                raise NoteNotFoundError(
-                    ErrorsPresenter.format_errors(filters)
-                )
-            raise NoteEmptyStorageError("Empty storage, create a note first")
 
-        if sort_by not in self.SORT_DEFAULTS:
-            raise SearchFilterError(
-                f"{sort_by} is not a valid value or --sort",
-                filters="sort"
-            )
-            
-        reverse = False if asc else desc
-        if not asc and not desc:
-            reverse = self.SORT_DEFAULTS[sort_by]["reverse"]
+        reverse = self._get_reverse(order, sort_by)
 
         sorted_items = sorted(
             result.items,
@@ -70,22 +62,44 @@ class ListNotesUseCase:
         result.items = sorted_items
 
         if result.groups:
-            remaining_ids = set(id(item) for item in sorted_items)
-            updated_groups = {}
+            result = self._update_groups(result, sorted_items)
 
-            for tag, items in result.groups.items():
-                filtered_items = [
-                    item for item in items
-                    if id(item) in remaining_ids
+        return result, warnings
+
+
+    def _update_groups(self, result, sorted_items):
+        remaining_ids = set(id(item) for item in sorted_items)
+        updated_groups = {}
+
+        for tag, items in result.groups.items():
+            filtered_items = [
+                item for item in items
+                if id(item) in remaining_ids
+            ]
+
+            if filtered_items:
+                ordered_items = [
+                    item for item in sorted_items
+                    if item in filtered_items
                 ]
 
-                if filtered_items:
-                    ordered_items = [
-                        item for item in sorted_items
-                        if item in filtered_items
-                    ]
-                    updated_groups[tag] = ordered_items
-
-            result.groups = updated_groups
-
+                updated_groups[tag] = ordered_items
+        result.groups = updated_groups
         return result
+        
+    
+    def _get_reverse(self, order, sort_by):
+        if not order:
+        	reverse = self.SORT_DEFAULTS[sort_by]["reverse"]
+        elif order == SortDirection.asc:
+            reverse = False
+        else:
+            reverse = True
+        
+        return reverse    
+    
+    
+    def _check_limit(self, limit):
+        if isinstance(limit, int) and limit <= 0:
+        	return "Invalid limit value, must be higher than 0"
+        return None                                                                                                                                                                                       

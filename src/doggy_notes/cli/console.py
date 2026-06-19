@@ -5,16 +5,26 @@ from rich.columns import Columns
 from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
+from rich.tree import Tree
 from rich.theme import Theme
 from rich.box import ROUNDED
 from rich.align import Align
 
+from doggy_notes.domain.entities.node import Node
+
 custom_theme = Theme({
-    "info": "dim cyan",
-    "warning": "bold yellow",
-    "error": "bold red",
-    "success": "bold green",
-    "title": "bold bright_blue",
+    "warning":  "bold yellow3",
+    "error":    "bold red1",
+    "success":  "bold green3",
+    "path":     "dark_orange",
+    "info":     "light_cyan1",
+    "title":  "bold gray100",
+    "subtitle":  "white",
+    "tag":      "bold deep_sky_blue1",
+    "id":       "bold magenta",
+    "date": "blue",
+    "file":  "yellow4",
+    "directory": "yellow2",
 })
 
 
@@ -38,6 +48,7 @@ class Console:
     def write(self, *content, **kwargs):
         self.console.print(*content, **kwargs)
 
+    
     def write_e(self, *content, **kwargs):
         self.e_console.print(*content, **kwargs)
 
@@ -46,25 +57,33 @@ class Console:
     # =========================
 
     def success(self, text: str):
-        self._status("OK", text, "success")
+        self._status("✓", text, "success")
 
+    
     def error(self, text: str):
-        self._status("ERROR", text, "error", stderr=True)
+        self._status("✗", text, "error", stderr=True)
 
+    
     def warning(self, text: str):
         self._status("!", text, "warning")
-
+        
+    
     def info(self, text: str):
-        self._status("INFO", text, "info")
+    	self._status(text=text, style="info")
 
+    
     def _status(
         self,
-        label: str,
-        text: str,
-        style: str,
+        label: str = None,
+        text: str = None,
+        style: str = None,
         stderr: bool = False,
     ):
-        message = f"[bold][{label}][/bold] {text}"
+        if label:
+        	message = f"[bold][{label}][/bold] {text}"
+        else:
+        	message=text
+        	
         if stderr:
             self.write_e(message, style=style)
         else:
@@ -74,7 +93,7 @@ class Console:
     # Panels
     # =========================
 
-    def note(
+    def panel(
         self,
         text: str,
         title: str | None = None,
@@ -88,6 +107,7 @@ class Console:
             )
         )
 
+    
     def read(self, text: Text, title: str | None = None):
         content = Panel(
             text,
@@ -97,6 +117,19 @@ class Console:
         )
         with self.console.pager(styles=True):
             self.console.print(content)
+            
+    
+    def build_rich_tree(self, node: Node) -> Tree:
+    	tree = Tree(node.path.name)
+    	
+    	def add_children(branch, current):
+    	    for child in current.children:
+    	        child_branch = branch.add(child.path.name)
+    	        add_children(child_branch, child)
+    	
+    	add_children(tree, node)    	    
+    	return tree
+    	
 
     # =========================
     # Tables
@@ -133,7 +166,9 @@ class Console:
 
             if rendered_tables:
                 columns = Columns(rendered_tables, equal=True, expand=False)
+                self.write("")
                 self.write(Align.center(columns))
+                self.write("")
             return
 
         filtered_items = self._apply_filters(items_to_show, filters)
@@ -150,8 +185,11 @@ class Console:
             tables.append(table)
 
         columns = Columns(tables, equal=True, expand=False)
+        self.write("")
         self.write(Align.center(columns))
+        self.write("")
 
+    
     def _create_table(self, items: list[str], title: str, start_index: int = 1):
         table = Table(
             title=title,
@@ -169,6 +207,7 @@ class Console:
 
         return table
 
+    
     def _apply_filters(self, items: list[str], filters: dict | None) -> list[str]:
         if not filters:
             return items
@@ -182,6 +221,7 @@ class Console:
     # Input
     # =========================
 
+    
     def confirm(self, text: str) -> bool:
         self.warning(text)
         answer = input(

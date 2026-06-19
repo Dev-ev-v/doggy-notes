@@ -9,15 +9,19 @@ except ImportError:
 from pathlib import Path
 
 from doggy_notes.cli.dependencies import get_container
-from doggy_notes.cli.commands.add import add
-from doggy_notes.cli.commands.list_func import list_func
-from doggy_notes.cli.commands.delete import delete
-from doggy_notes.cli.commands.info import info
-from doggy_notes.cli.commands.edit import edit
-from doggy_notes.cli.commands.read import read
+
+from doggy_notes.cli.commands.create_app import create_app
+from doggy_notes.cli.commands.list_app import list_app
+from doggy_notes.cli.commands.delete_app import delete_app
+from doggy_notes.cli.commands.info_app import info_app
+from doggy_notes.cli.commands.edit_app import edit_app
+from doggy_notes.cli.commands.read_app import read_app
+from doggy_notes.cli.commands.path_app import path_app
+
+from doggy_notes.cli.help_messages import HelpMessages
 
 logging.basicConfig(
-    filename=get_container().paths.logs_file,
+    filename=get_container().paths.log_file,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%d/%m/%Y %H:%M:%S'
@@ -62,13 +66,19 @@ def root(
     		logging.getLogger().setLevel(logging.DEBUG)
     	get_container().initialize_database()
     	
+app.add_typer(delete_app, name="delete", help=HelpMessages.DELETE_APP_MESSAGE)
 
-app.command()(add)
-app.command(name="list")(list_func)
-app.command()(delete)
-app.command()(info)
-app.command()(edit)
-app.command()(read)
+app.add_typer(read_app, name="read", help=HelpMessages.READ_APP_MESSAGE)
+
+app.command(name="create", help=HelpMessages.CREATE_APP_MESSAGE)(create_app)
+
+app.command(name="list", help=HelpMessages.LIST_APP_MESSAGE)(list_app)
+
+app.command(name="info", help=HelpMessages.INFO_APP_MESSAGE)(info_app)
+
+app.command(name="edit")(edit_app)
+
+app.command(name="path", help=HelpMessages.PATH_APP_MESSAGE)(path_app)
 
 if __name__ == "__main__":
     app()
