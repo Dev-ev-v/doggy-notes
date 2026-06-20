@@ -76,7 +76,7 @@ app.command(name="list", help=HelpMessages.LIST_APP_MESSAGE)(list_app)
 
 app.command(name="info", help=HelpMessages.INFO_APP_MESSAGE)(info_app)
 
-app.command(name="edit")(edit_app)
+app.command(name="edit", help=HelpMessages.EDIT_APP_MESSAGE)(edit_app)
 
 app.command(name="path", help=HelpMessages.PATH_APP_MESSAGE)(path_app)
 
