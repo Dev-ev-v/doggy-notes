@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
+from rich.text import Text
 
 @dataclass
 class ErrorDetail:
@@ -71,10 +72,10 @@ class NoteException(Exception):
 
 
 class NoteNotFoundError(NoteException):
-    
     def __init__(self, filters: Dict[str, Any], message: str = None):
-        msg = message or f"Any found notes with the applicated filters"
-        super().__init__(f"{msg}: \n{filters}", code="NOTE_NOT_FOUND")
+        self.filters = filters
+        msg = message or "No notes found with the applied filters"
+        super().__init__(msg, code="NOTE_NOT_FOUND")
 
 
 class NoteValidationError(NoteException):
@@ -93,10 +94,10 @@ class NoteValidationError(NoteException):
 
 class SearchFilterError(NoteException):
     
-    def __init__(self, message: str = "", filters: Dict[str, Any] = None):
-        super().__init__(message or "Search error", code="SEARCH_FILTER_ERROR")
-        if filters:
-            self.context = {"filters": filters}
+    def __init__(self, message: str = "", filter: str = None, value: str = None):
+        super().__init__(message or f"Invalid filter {filter}", code="SEARCH_FILTER_ERROR")
+        self.filter = filter
+        self.value = value
 
 
 class NoteEmptyStorageError(NoteException):
@@ -113,4 +114,4 @@ class NoteOperationError(NoteException):
         super().__init__(msg, code="NOTE_OPERATION_ERROR")
         
         if errors:
-            self.add_errors(errors)            
+            self.add_errors(errors)                                                                                

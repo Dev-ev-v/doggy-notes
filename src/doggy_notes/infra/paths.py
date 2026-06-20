@@ -18,7 +18,7 @@ class Paths:
 
     config_file: Path
     database_file: Path
-    logs_file: Path
+    log_file: Path
 
 def build_paths() -> Paths:
     
@@ -43,7 +43,7 @@ def build_paths() -> Paths:
         cache_dir=cache_dir,
         backups_dir=backups_dir,
         exports_dir=exports_dir,
-        logs_file=cache_dir / "logs.txt",      	  
+        log_file=cache_dir / "doggy_notes.log",      	  
    	 config_file=config_dir / "config.toml",
    	 database_file=data_dir / "doggy_notes.db",
 	)

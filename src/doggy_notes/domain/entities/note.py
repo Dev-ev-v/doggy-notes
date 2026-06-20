@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List
+from dataclasses import fields
 import uuid
 
 def generate_id() -> str:

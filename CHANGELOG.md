@@ -1,5 +1,47 @@
 # CHANGELOG.md
 
+## [3.0.0] - 2026-06-19
+
+< ⚠️ BREAKING CHANGES:
+
+- `delete` and `read` now use the `tag` and `id` subcommands to select notes instead of flags.
+- `add` has been renamed to `create` to better reflect the command's purpose.
+- `--asc` and `--desc` have been replaced by `--order`.>
+
+### Added
+
+- Previous versions of doggy-notes are now documented in this changelog to make comparisons easier.
+- New colors have been added to the doggy-notes console themes.
+- Added the `path` command to display doggy-notes files as a tree.
+- Created the `help_messages` file to centralize command help messages.
+
+### Changed
+
+- Use cases no longer depend on presenters, `note_parser`, or `console`. Presentation logic is now restricted to CLI commands.
+- `note_presenter` has been split into `error_presenter` and `file_presenter` for better separation of concerns.
+- Replaced the `--asc` and `--desc` flags with the `--order` option, which uses an enum for better organization and fewer flag checks.
+- The `info` command now uses `deps.console` instead of Typer for output. As a result, all CLI commands now use the doggy-notes console.
+- The `service` module now raises `NoteNotFoundError` and `EmptyStorageError` automatically, eliminating the need for these checks in CLI commands.
+- `NotePresenterConfig` has been removed. Console styles are now used instead.
+- Help messages have been shortened and simplified.
+- All CLI command objects now use the `*_app` suffix for better identification.
+- Validation logic has been moved from CLI commands to their respective use cases.
+- `note_parser` has been split into `tag_parser` and `id_parser` 
+- Logs are now stored in `.log` files instead of `.txt`
+
+### Fixed
+
+- Introduced enums to eliminate unnecessary flag checks.
+- Replaced `OK` and `ERROR` labels with status glyphs (`✓` and `✗`) for more scannable output.
+- Split complex functions into smaller units.
+- Added a log manager to limit stored log size/count
+
+### Removed
+
+- Removed usage and output examples from help messages to keep them cleaner.
+
+---
+
 ## [2.2.0] - 2026-05-29
 
 ### Added

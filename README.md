@@ -8,7 +8,6 @@ Create and manage notes quickly without leaving the command line.
 
 - Create notes
 - Delete single or multiple notes
-- Confirmation before deletion
 - Note search
 - SQLite storage
 - Tag support
@@ -42,7 +41,7 @@ pip install doggy-notes
 Create a note:
 
 ```bash
-doggy add "your text here"
+doggy add "I love python"
 ```
 
 List notes
@@ -54,7 +53,7 @@ doggy list
 Delete a note:
 
 ```bash
-doggy delete <index>
+doggy delete id 12345678
 ```
 
 ## Command Reference
@@ -62,10 +61,12 @@ doggy delete <index>
 | Command | Description |
 |---------|-------------|
 | add     | Create note |
-| delete  | Delete note |
+| delete  | Delete notes |
 | list    | Find notes |
 | read  | Show notes details |
-| edit  | Edit notes |
+| edit  | Edit note |
+| info | Show runtime informations |
+| path | Show  doggy-notes files |
 
 ## Storage
 
@@ -75,11 +76,12 @@ Example structure:
 
 ```note
 {
+ "id":"0123456789abcdefghijqwertyuiop32"
  "content":"Review argparse",
  "title":"Note",
  "description":"How to use argparse + examples"
  "tags":["python","cli"],
- "date":"2026-04-25"
+ "date":"2026-06-19 22:42:41.433805+00:00"
 }
 ```
 
@@ -93,7 +95,8 @@ Planned:
 - Backup support
 - README support
 - Filter notes dedicated function
-- Personalizations
+- Dedicated examples file
+- Personalizated theme colors
 
 ## Why This Project
 
