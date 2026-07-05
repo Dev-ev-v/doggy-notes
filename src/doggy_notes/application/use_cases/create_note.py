@@ -1,26 +1,39 @@
+import logging
 from typing import Optional, List
 from datetime import datetime, timezone
 
 from doggy_notes.domain.entities.note import Note
 
-class CreateNoteUseCase:
-    def __init__(self, service):
-        self.service = service
 
+logger = logging.getLogger(__name__)
+
+class CreateNoteUseCase:
+    def __init__(self, service, editor):
+        self.service = service
+        self.editor = editor
+        
+    
+    def generate_note(self, data: dict):
+        now = datetime.now(timezone.utc)
+        data.setdefault("created_at", now)
+        data["updated_at"] = now
+        
+        if not data["content"]:
+        	content = self.editor.open_editor()
+        	data["content"] = content
+        	
+                
+        note = Note(**data)        
+        if note:
+        	logger.debug("Note %s created", note.id)
+        	
+        return note
+
+    
     def execute(
         self,
-        content: str,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        tags: List[str] = None,
+        note: Note,
     ):
-        note = Note(
-            content=content,
-            title=title,
-            description=description,
-            tags=tags or [],
-            date=datetime.now(timezone.utc),
-        )
-
-        self.service.create(note)
-        return note
+        success, error_msg = self.service.create(note)
+        
+        return success, error_msg

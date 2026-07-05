@@ -4,15 +4,29 @@ from doggy_notes.domain.entities.note import Note
 
 class NoteMapper:
     @staticmethod
-    def to_row(note: Note):
+    def to_insert_row(note: Note):
         return (
-            note.content,
-            note.title,
-            note.description,
-            note.date.isoformat() if isinstance(note.date, datetime) else note.date,
-            note.id,
-        )
+       	 note.content,
+      	  note.title,
+       	 note.description,
+       	 note.created_at.isoformat() if isinstance(note.created_at, datetime) else note.created_at,
+       	 note.updated_at.isoformat(),
+       	 note.fingerprint,
+       	 note.id,)
+    
+    
+    @staticmethod
+    def to_update_row(note: Note):
+        return (
+      	  note.content,
+       	 note.title,
+        	note.description,
+       	 note.updated_at.isoformat(),
+     	   note.fingerprint,
+      	  note.id,
+    	)
 
+    
     @staticmethod
     def from_row(row) -> Note:
         return Note(
@@ -20,6 +34,7 @@ class NoteMapper:
             title=row["title"],
             description=row["description"],
             tags=[],
-            date=datetime.fromisoformat(row["date"]),
-            id=row["id"]
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+            id=row["id"],
         )

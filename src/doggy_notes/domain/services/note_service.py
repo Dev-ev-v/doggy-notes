@@ -1,9 +1,13 @@
+import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from doggy_notes.domain.exceptions.note_errors import NoteValidationError, SearchFilterError, NoteNotFoundError, NoteEmptyStorageError
+from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNotFoundError, NoteEmptyStorageError
 from doggy_notes.application.dto.query_result import QueryResult
 from doggy_notes.domain.enums.mode import Mode
+
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class NoteServiceConfig:
@@ -15,16 +19,38 @@ class NoteService:
     def __init__(self, repo, config: Optional[NoteServiceConfig] = None):
         self.repo = repo
         self.config = config or NoteServiceConfig()
+        
+    
+    def validate_note(self, note, verify_id: bool = True):
+
+        valid_title, msg = self._validate_title(note)
+        if not valid_title:
+            return False, msg
+                    
+        if verify_id:
+        	valid_id, msg = self._validate_id(note)
+        	if not valid_id:
+        		return False, msg
+        
+        valid_fingerprint, msg = self._validate_fingerprint(note)        
+        if not valid_fingerprint:
+        	return False, msg
+        
+        return True, None
 
     
     def create(self, note):
-        self._validate_note(note)
-        self.repo.create(note)
+    	success, msg = self.validate_note(note)
+    	if success:
+    		self.repo.create(note)
+    	return success, msg
 
     
     def update(self, note):
-        self._validate_note(note)
-        self.repo.update(note)
+        success, msg = self.validate_note(note, False)
+        if success:
+        	self.repo.update(note)
+        return success, msg
 
     
     def delete(self, note):
@@ -50,15 +76,31 @@ class NoteService:
         self._is_empty(result, ids, tags)
 
         return result
-
+        
     
-    def _validate_note(self, note):
-
-        if len(note.title) > self.config.max_title_length:
-            raise NoteValidationError(
-                "title",
-                f"Title exceeds maximum length of {self.config.max_title_length}",
-            )
+    def _validate_fingerprint(self, note):
+    	existing_id = self.repo._exists_by_fingerprint(note.fingerprint)
+    	
+    	if existing_id:
+    		logger.debug("Note %s already exist in storage", note.id[:8])
+    	
+    	return True, None
+    
+    
+    def _validate_id(self, note):
+    	if self.repo._exists_by_id(note.id):
+    		logger.debug("Skipping note %s: ID already exists", note.id[:8])
+    		return False, None
+    	
+    	return True, None
+    	
+    	
+    def _validate_title(self, note):
+    	if len(note.title) > self.config.max_title_length:
+    		logger.debug("Skipping note %s: title exceds limit of %s", note.id[:8], str(self.config.max_title_length))
+    		return False, None
+    	
+    	return True, None
 
     
     def _get_by_ids(self, ids: list[str]) -> QueryResult:

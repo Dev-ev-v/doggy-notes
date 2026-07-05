@@ -1,13 +1,13 @@
-from functools import lru_cache
+from functools import lru_cache, cached_property
 from typing import NamedTuple
 
 # === Infra ===
 from doggy_notes.infra.paths import build_paths
-from doggy_notes.infra.database.schema import ensure_schema
 from doggy_notes.infra.persistence.sqlite_note_repository import SQLiteNoteRepository
 
 # === Domain ===
 from doggy_notes.domain.services.note_service import NoteService
+from doggy_notes.domain.services.editor_service import EditorService
 
 # === Application (Use Cases) ===
 from doggy_notes.application.use_cases.create_note import CreateNoteUseCase
@@ -15,6 +15,8 @@ from doggy_notes.application.use_cases.read_notes import ReadNotesUseCase
 from doggy_notes.application.use_cases.delete_notes import DeleteNotesUseCase
 from doggy_notes.application.use_cases.edit_note import EditNoteUseCase
 from doggy_notes.application.use_cases.list_notes import ListNotesUseCase
+from doggy_notes.application.use_cases.legacy_importer import LegacyImporterUseCase
+from doggy_notes.application.use_cases.export_notes import ExportNotesUseCase
 
 # === Presentation ===
 from doggy_notes.presentation.presenters.note_presenter import NotePresenter
@@ -44,6 +46,8 @@ class CommandDependencies(NamedTuple):
     delete_notes: DeleteNotesUseCase
     edit_note: EditNoteUseCase
     list_notes: ListNotesUseCase
+    legacy_importer: LegacyImporterUseCase
+    export_notes: ExportNotesUseCase
 
 class DIContainer:
     
@@ -58,113 +62,92 @@ class DIContainer:
     def __init__(self):
         if self._initialized:
             return
-   
-        self._paths = build_paths()
+  
         self._initialized = True
     
     # ===== Infra =====
     
-    @property
-    @lru_cache(maxsize=1)
+    @cached_property
     def paths(self):
-        return self._paths
+        return build_paths()
     
-    @property
+    @cached_property
     def repository(self) -> SQLiteNoteRepository:
-        if not hasattr(self, '_repository'):
-            self._repository = SQLiteNoteRepository(self.paths.database_file)
-        return self._repository
-        
+        return SQLiteNoteRepository(self.paths.database_file)       
     
     # ===== Domain =====
     
-    @property
+    @cached_property
     def service(self) -> NoteService:
-        if not hasattr(self, '_service'):
-            self._service = NoteService(self.repository)
-        return self._service
+        return NoteService(self.repository)
+        
+    @cached_property
+    def editor(self) -> EditorService:
+    	return EditorService()
     
     # ===== Presentation =====
     
-    @property
+    @cached_property
     def console(self) -> Console:
-        if not hasattr(self, '_console'):
-            self._console = Console()
-        return self._console
+        return Console()
     
-    @property
+    @cached_property
     def tag_parser(self) -> TagParser:
-        if not hasattr(self, '_tag_parser'):
-            self._tag_parser = TagParser()
-        return self._tag_parser
+        return TagParser()
         
-    @property
+    @cached_property
     def id_parser(self) -> IDParser:
-        if not hasattr(self, '_id_parser'):
-            self._id_parser = IDParser()
-        return self._id_parser
+        return IDParser()
     
-    @property
+    @cached_property
     def note_presenter(self) -> NotePresenter:
-        if not hasattr(self, '_note_presenter'):
-            self._note_presenter = NotePresenter()
-        return self._note_presenter
+        return NotePresenter()
         
-    @property
+    @cached_property
     def error_presenter(self) -> ErrorPresenter:
-        if not hasattr(self, '_error_presenter'):
-            self._error_presenter = ErrorPresenter()
-        return self._error_presenter
+        return ErrorPresenter()
     
-    @property
+    @cached_property
     def file_presenter(self) -> FilePresenter:
-        if not hasattr(self, '_file_presenter'):
-            self._file_presenter = FilePresenter()
-        return self._file_presenter                
+       return FilePresenter()      
     
-    @property
+    @cached_property
     def date_formatter(self) -> DateFormatter:
-        if not hasattr(self, '_date_formatter'):
-            self._date_formatter = DateFormatter()
-        return self._date_formatter
+        return DateFormatter()
         
-    @property
+    @cached_property
     def help_messages(self) -> HelpMessages:
-        if not hasattr(self, '_help_messages'):
-            self._help_messages = HelpMessages()
-        return self._help_messages
+       return HelpMessages()
     
     # ===== Use Cases =====
     
-    @property
+    @cached_property
     def create_note(self) -> CreateNoteUseCase:
-        if not hasattr(self, '_create_note'):
-            self._create_note = CreateNoteUseCase(self.service)
-        return self._create_note
+        return CreateNoteUseCase(self.service, self.editor)
     
-    @property
+    @cached_property
     def read_notes(self) -> ReadNotesUseCase:
-        if not hasattr(self, '_read_notes'):
-            self._read_notes = ReadNotesUseCase(self.service)
-        return self._read_notes
+        return ReadNotesUseCase(self.service)
     
-    @property
+    @cached_property
     def delete_notes(self) -> DeleteNotesUseCase:
-        if not hasattr(self, '_delete_notes'):
-            self._delete_notes = DeleteNotesUseCase(self.service)
-        return self._delete_notes
+        return DeleteNotesUseCase(self.service)
     
-    @property
+    @cached_property
     def edit_note(self) -> EditNoteUseCase:
-        if not hasattr(self, '_edit_note'):
-            self._edit_note = EditNoteUseCase(self.service)
-        return self._edit_note
+        return EditNoteUseCase(self.service, self.editor)
     
-    @property
+    @cached_property
     def list_notes(self) -> ListNotesUseCase:
-        if not hasattr(self, '_list_notes'):
-            self._list_notes = ListNotesUseCase(self.service)
-        return self._list_notes
+        return ListNotesUseCase(self.service)
+        
+    @cached_property
+    def legacy_importer(self) -> LegacyImporterUseCase:
+        return LegacyImporterUseCase(self.service)
+        
+    @cached_property
+    def export_notes(self) -> ExportNotesUseCase:
+        return ExportNotesUseCase(self.service)
     
     
     def get_command_dependencies(self) -> CommandDependencies:
@@ -184,15 +167,9 @@ class DIContainer:
             delete_notes=self.delete_notes,
             edit_note=self.edit_note,
             list_notes=self.list_notes,
+            legacy_importer=self.legacy_importer,
+            export_notes=self.export_notes,
         )
-
-    
-    def initialize_database(self) -> None:
-        ensure_schema(self.paths.database_file)
-    
-    def shutdown(self) -> None:
-        if hasattr(self, '_repository'):
-            self._repository.close()
             
 
 def get_container() -> DIContainer:

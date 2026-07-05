@@ -2,9 +2,15 @@ from datetime import datetime, timezone
 from typing import Optional
 
 class DateFormatter:
+       
+    @staticmethod
+    def to_filename(dt: datetime = None) -> str:
+    	dt = dt or datetime.now(timezone.utc)
+    	return dt.strftime("%Y-%m-%d_%H-%M-%S")
+    	
 
     @staticmethod
-    def format(date_str: str, now: Optional[datetime] = None) -> str:
+    def to_relative(date_str: str, now: Optional[datetime] = None) -> str:
         try:
             date = datetime.fromisoformat(date_str)
         except ValueError as e:

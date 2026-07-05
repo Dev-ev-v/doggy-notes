@@ -19,14 +19,21 @@ def _run_delete(*, note_ids=None, tags=None, mode="AND", yes: bool):
             tags=parsed_tags,
             mode=mode,
         )
+        
+        notes = result.items
 
-        confirmed = yes or deps.console.confirm(f"{len(result.items)} notes will be deleted. Continue?")
+        confirmed = yes or deps.console.confirm(f"{len(notes)} notes will be deleted. Continue?")
         if not confirmed:
             deps.console.error("Operation cancelled")
             return
 
         deps.delete_notes.execute(result)
-        deps.console.success("Notes deleted")
+        
+        deps.console.success(f"{len(notes)} successfully notes deleted")
+        
+        formatted_notes = [deps.note_presenter._resume_note(note) for note in notes]
+        
+        deps.console.list_notes(formatted_notes, "Deleted notes")
 
     except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError) as e:
         deps.console.error(deps.error_presenter.format(e))

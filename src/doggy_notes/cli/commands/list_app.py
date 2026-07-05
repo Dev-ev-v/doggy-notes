@@ -25,9 +25,9 @@ def list_app(
         help="Maximum number of notes to display",
     ),
     sort_by: SortBy = typer.Option(
-        SortBy.date,
+        SortBy.created_at,
         "--sort",
-        help="Sort by: 'date' (newest first) or 'title' (alphabetical)",
+        help="Sort by: 'created_at' (newest first) or 'title' (alphabetical)",
         case_sensitive=False,
     ),
     order: SortDirection = typer.Option(

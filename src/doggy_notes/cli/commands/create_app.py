@@ -6,7 +6,8 @@ from doggy_notes.cli.dependencies import get_dependencies
 
 def create_app(
     content: str = typer.Argument(
-        help="Main note content (required)"
+    	None,
+        help="Main note content",
     ),
     title: Optional[str] = typer.Option(
         "Untitled",
@@ -30,10 +31,24 @@ def create_app(
     
     try:
         tags = deps.tag_parser.parse_tags(tags) 
-        note = deps.create_note.execute(content=content, title=title, description=description, tags=tags)
         
-        deps.console.success("Note successfully created")
-        deps.console.panel(deps.note_presenter._resume_note(note))
+        data = {
+        	"content": content,
+        	"title": title,
+        	"description": description,
+        	"tags": tags        
+        }
+        
+        note = deps.create_note.generate_note(data)
+        
+        success, error_msg = deps.create_note.execute(note)
+        
+        if success:
+        	deps.console.success("Note successfully created")
+        	deps.console.panel(deps.note_presenter._resume_note(note))
+        
+        if error_msg:
+        	deps.console.error(error_msg)
         
     except (NoteValidationError, SearchFilterError) as e:
         deps.console.error(deps.error_presenter.format(e))

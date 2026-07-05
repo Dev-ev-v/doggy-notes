@@ -6,6 +6,7 @@ from doggy_notes.domain.entities.note import Note
 from doggy_notes.domain.repositories.note_repository import NoteRepository
 from doggy_notes.infra.persistence.mappers.note_mapper import NoteMapper
 
+from doggy_notes.domain.exceptions.note_errors import NoteImportationError
 
 logger = logging.getLogger(__name__)
 
@@ -18,58 +19,46 @@ class SQLiteNoteRepository(NoteRepository):
         self.conn.execute("PRAGMA foreign_keys = ON")
 
     # -------------------------
-    # Metadata
-    # -------------------------
-
-    def get_schema_version(self) -> int:
-        cursor = self.conn.execute("""
-            SELECT value FROM metadata WHERE key = 'schema_version'
-        """)
-        row = cursor.fetchone()
-        return int(row[0]) if row else 0
-
-    # -------------------------
     # CREATE
     # -------------------------
 
     def create(self, note: Note) -> None:
-        logger.debug("Creating note %s", note.id)
+    			
+    	self.conn.execute("""
+    		INSERT INTO notes (content, title, description, created_at, updated_at, fingerprint, id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, NoteMapper.to_insert_row(note))
+    	self._save_tags(note.id, note.tags)
+    		
+    	self.conn.commit()
+    	logger.debug("Note %s successfully saved", note.id)
+    		
+    	return True
 
-        self.conn.execute("""
-            INSERT INTO notes (content, title, description, date, id)
-            VALUES (?, ?, ?, ?, ?)
-        """, NoteMapper.to_row(note))
-
-        self._save_tags(note.id, note.tags)
-
-        self.conn.commit()
-        logger.info("Note created: %s", note.id)
 
     # -------------------------
     # UPDATE
     # -------------------------
 
     def update(self, note: Note) -> None:
-        logger.debug("Updating note %s", note.id)
-
-        self.conn.execute("""
+    	self.conn.execute("""
             UPDATE notes
             SET content = ?,
-                title = ?,
+            	title = ?,
                 description = ?,
-                date = ?
+                updated_at = ?,
+                fingerprint = ?
             WHERE id = ?
-        """, NoteMapper.to_row(note))
-
-        # reset tags (important fix)
-        self.conn.execute("""
+        """, NoteMapper.to_update_row(note))
+        	
+    	self.conn.execute("""
             DELETE FROM note_tags WHERE note_id = ?
         """, (note.id,))
+       	 
+    	self._save_tags(note.id, note.tags)
+    	self.conn.commit()
+    	logger.debug("Note %s successfully updated", note.id)
 
-        self._save_tags(note.id, note.tags)
-
-        self.conn.commit()
-        logger.info("Note updated: %s", note.id)
 
     # -------------------------
     # READ
@@ -89,6 +78,7 @@ class SQLiteNoteRepository(NoteRepository):
         note.tags = self._load_tags(note.id)
         return note
 
+
     def get_by_short_id(self, short_id: str) -> Note | None:
         cursor = self.conn.execute("""
             SELECT * FROM notes
@@ -107,12 +97,14 @@ class SQLiteNoteRepository(NoteRepository):
         note.tags = self._load_tags(note.id)
         return note
 
+
     def get_all(self) -> list[Note]:
         cursor = self.conn.execute("""
-            SELECT * FROM notes ORDER BY date DESC
+            SELECT * FROM notes ORDER BY created_at DESC
         """)
 
         return self._map_rows_with_tags(cursor.fetchall())
+
 
     def get_by_tags(self, tags: list[str], mode: str) -> list[Note]:
         logger.debug("Searching notes by tags: %s", tags)
@@ -139,19 +131,22 @@ class SQLiteNoteRepository(NoteRepository):
                 JOIN note_tags nt ON notes.id = nt.note_id
                 JOIN tags t ON t.id = nt.tag_id
                 WHERE t.name IN ({placeholders})
-                ORDER BY notes.date DESC
+                ORDER BY notes.created_at DESC
             """, (*tags,))
 
         return self._map_rows_with_tags(cursor.fetchall())
+
 
     # -------------------------
     # DELETE
     # -------------------------
 
     def delete(self, note: Note) -> None:
-    	logger.info("Deleting note %s", note.id)
-    	self.conn.execute("DELETE FROM notes WHERE id = ?", (note.id,))
-    	self.conn.commit()
+        logger.debug("Deleting note %s", note.id)
+        self.conn.execute("DELETE FROM notes WHERE id = ?", (note.id,))
+        self.conn.commit()
+        logger.debug("Note %s successfully deleted", note.id)
+
 
     # -------------------------
     # TAG SYSTEM
@@ -176,6 +171,7 @@ class SQLiteNoteRepository(NoteRepository):
                 VALUES (?, ?)
             """, (note_id, tag_id))
 
+
     def _load_tags(self, note_id: str) -> list[str]:
         cursor = self.conn.execute("""
             SELECT t.name
@@ -185,6 +181,7 @@ class SQLiteNoteRepository(NoteRepository):
         """, (note_id,))
 
         return [row[0] for row in cursor.fetchall()]
+
 
     # -------------------------
     # MAPPING
@@ -200,5 +197,15 @@ class SQLiteNoteRepository(NoteRepository):
 
         return notes
 
-    def close(self):
-        self.conn.close()
+
+    def _exists_by_fingerprint(self, fingerprint: str) -> str | None:
+        row = self.conn.execute(
+        	"SELECT id FROM notes WHERE fingerprint = ?",
+        	(fingerprint,)).fetchone()
+        return row["id"] if row else None
+                
+    
+    def _exists_by_id(self, id: str) -> bool:
+        row = self.conn.execute(
+        	"SELECT 1 FROM notes WHERE id = ?", (id,)).fetchone()
+        return row is not None

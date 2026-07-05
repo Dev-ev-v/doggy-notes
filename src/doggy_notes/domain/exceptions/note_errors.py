@@ -87,6 +87,7 @@ class NoteValidationError(NoteException):
             msg = f"Note(s) validation error"
             super().__init__(msg, code="NOTE_VALIDATION_ERROR")
             self.add_errors(validation_errors)
+        
         else:
             msg = f"Failed validation in '{field}': {message}" if field else message
             super().__init__(msg, code="NOTE_VALIDATION_ERROR")
@@ -114,4 +115,11 @@ class NoteOperationError(NoteException):
         super().__init__(msg, code="NOTE_OPERATION_ERROR")
         
         if errors:
-            self.add_errors(errors)                                                                                
+            self.add_errors(errors)
+            
+
+class NoteImportationError(NoteException):
+	
+	def __init__(self, message: str = ""):
+		msg = message or "Cannot complete note importation"
+		super().__init__(msg, code="NOTE_IMPORTATION_ERROR")                                                                              

@@ -1,45 +1,13 @@
-import hashlib
 import json
 import logging
 import shutil
 import sqlite3
-import uuid
 import re
-
-from datetime import datetime, timezone
 from pathlib import Path
 
+from doggy_notes.application.use_cases.legacy_importer import LegacyImporterUseCase
+
 logger = logging.getLogger(__name__)
-
-SUPPORTED_DATE_FORMATS = (
-    "%Y-%m-%d_%H-%M-%S",
-    "%Y-%m-%dT%H:%M:%S",
-    "%Y-%m-%dT%H:%M:%S.%f",
-)
-
-
-# ============================================================
-# Utils
-# ============================================================
-
-def normalize(text: str) -> str:
-    text = text or ""
-    text = text.strip().lower()
-    text = re.sub(r"\s+", " ", text)
-    return text
-
-
-def build_fingerprint(title: str, content: str) -> str:
-    """
-    Fingerprint version 1:
-    title + content
-    """
-
-    raw = f"{normalize(title)}|{normalize(content)}"
-
-    return hashlib.sha256(
-        raw.encode("utf-8")
-    ).hexdigest()
 
 
 # ============================================================
@@ -59,8 +27,10 @@ def get_schema_version(cursor) -> int:
 
         return int(row[0]) if row else 0
 
-    except sqlite3.DatabaseError:
-        return 0
+    except sqlite3.OperationalError as e:
+        if "no such table" in str(e):
+        	return 0
+        raise
 
 
 def set_schema_version(cursor, version: int) -> None:
@@ -69,43 +39,6 @@ def set_schema_version(cursor, version: int) -> None:
         INSERT OR REPLACE INTO metadata (key, value)
         VALUES ('schema_version', ?)
     """, (str(version),))
-
-
-# ============================================================
-# Date Parsing
-# ============================================================
-
-def parse_timestamp(value: str) -> str:
-
-    if not value:
-        raise ValueError("Empty timestamp")
-
-    try:
-        dt = datetime.fromisoformat(value)
-
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-
-        return dt.isoformat()
-
-    except ValueError:
-        pass
-
-    for fmt in SUPPORTED_DATE_FORMATS:
-
-        try:
-            dt = datetime.strptime(value, fmt)
-            dt = dt.replace(tzinfo=timezone.utc)
-
-            return dt.isoformat()
-
-        except ValueError:
-            continue
-
-    raise ValueError(
-        f"Unsupported timestamp format: {value}"
-    )
-
 
 # ============================================================
 # File Handling
@@ -135,114 +68,35 @@ def archive_file(json_file: Path) -> None:
     )
 
 
-# ============================================================
-# JSON Import
-# ============================================================
+def backfill_fingerprints(cursor, conn):
+    
+    cursor.executescript("""
+        DELETE FROM notes
+        WHERE rowid NOT IN (
+            SELECT MIN(rowid)
+            FROM notes
+            GROUP BY
+                TRIM(LOWER(COALESCE(title, ''))),
+                TRIM(LOWER(COALESCE(content, '')))
+        );
+    """)
+    conn.commit()
+    
+    rows = cursor.execute(
+        "SELECT id, title, content FROM notes WHERE fingerprint IS NULL"
+    ).fetchall()
 
-def import_json_note(cursor, json_file: Path) -> bool:
-
-    logger.info(
-        "Importing legacy note: %s",
-        json_file.name
-    )
-
-    data = json.loads(
-        json_file.read_text(encoding="utf-8")
-    )
-
-    title = data.get("title") or "Untitled"
-
-    content = data.get("content", "")
-
-    note_date = (
-        data.get("date")
-        or data.get("time")
-        or ""
-    )
-
-    timestamp = parse_timestamp(note_date)
-
-    fingerprint = build_fingerprint(
-        title,
-        content
-    )
-
-    note_id = uuid.uuid4().hex
-
-    # --------------------------------------------------------
-    # Insert note
-    # --------------------------------------------------------
-
-    cursor.execute("""
-        INSERT OR IGNORE INTO notes (
-            id,
-            title,
-            description,
-            content,
-            date,
-            fingerprint
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (
-        note_id,
-        title,
-        data.get("description", ""),
-        content,
-        timestamp,
-        fingerprint,
-    ))
-
-    if cursor.rowcount == 0:
-
-        logger.info(
-            "Skipping duplicate note: %s",
-            json_file.name
+    for row in rows:
+        fp = LegacyImporterUseCase._build_fingerprint(row["title"], row["content"])
+        cursor.execute(
+            "UPDATE notes SET fingerprint = ? WHERE id = ?",
+            (fp, row["id"])
         )
 
-        return False
-
-    # --------------------------------------------------------
-    # Tags migration
-    # --------------------------------------------------------
-
-    tags = data.get("tags", [])
-
-    normalized_tags = sorted({
-        tag.strip().lower()
-        for tag in tags
-        if tag.strip()
-    })
-
-    for tag in normalized_tags:
-
-        cursor.execute("""
-            INSERT OR IGNORE INTO tags (name)
-            VALUES (?)
-        """, (tag,))
-
-        cursor.execute("""
-            SELECT id
-            FROM tags
-            WHERE name = ?
-        """, (tag,))
-
-        tag_id = cursor.fetchone()[0]
-
-        cursor.execute("""
-            INSERT OR IGNORE INTO note_tags (
-                note_id,
-                tag_id
-            )
-            VALUES (?, ?)
-        """, (note_id, tag_id))
-
-    logger.info(
-        "Imported note successfully: %s",
-        json_file.name
-    )
-
-    return True
-
+    if rows:
+        conn.commit()
+        logger.debug("Backfilled %d fingerprints", len(rows))
+        
 
 # ============================================================
 # Migration V0 -> V1
@@ -253,65 +107,44 @@ def migrate_v0_to_v1(
     conn,
     legacy_dir: Path | None = None
 ):
-
-    logger.info(
-        "Starting V0 -> V1 migration"
-    )
+    logger.debug("Starting V0 -> V1 migration")
 
     if legacy_dir is None:
-
-        logger.info(
-            "No legacy directory provided. "
-            "Skipping JSON import."
-        )
-
+        logger.debug("No legacy directory provided. Skipping JSON import.")
         set_schema_version(cursor, 1)
         conn.commit()
-
         return
 
     imported_files = []
 
     for json_file in legacy_dir.glob("*.json"):
-
         try:
-
-            ok = import_json_note(
-                cursor,
-                json_file
-            )
-
+            ok = LegacyImporterUseCase.import_json_note(cursor, json_file)
             if ok:
                 imported_files.append(json_file)
-
         except Exception:
-
-            logger.exception(
-                "Failed to import %s",
-                json_file
-            )
-
-    conn.commit()
-
-    for json_file in imported_files:
-
-        try:
-            archive_file(json_file)
-
-        except Exception:
-
-            logger.exception(
-                "Failed to archive %s",
-                json_file
-            )
+            logger.exception("Failed to import %s", json_file)
 
     set_schema_version(cursor, 1)
-
     conn.commit()
 
-    logger.info(
-        "Schema upgraded to V1"
-    )
+    archive_failed = []
+
+    for json_file in imported_files:
+        try:
+            archive_file(json_file)
+        except Exception:
+            logger.exception("Failed to archive %s", json_file)
+            archive_failed.append(json_file)
+
+    if archive_failed:
+        logger.warning(
+            "%d file(s) could not be archived: %s",
+            len(archive_failed),
+            [f.name for f in archive_failed]
+        )
+
+    logger.debug("Schema upgraded to V1")
 
 
 # ============================================================
@@ -320,22 +153,22 @@ def migrate_v0_to_v1(
 
 def migrate_v1_to_v2(cursor, conn):
 
-    logger.info(
+    logger.debug(
         "Normalizing timestamps"
     )
 
     cursor.execute("""
         UPDATE notes
         SET date = date || '+00:00'
-        WHERE date NOT LIKE '%+%'
-        AND date NOT LIKE '%Z'
+        WHERE date NOT LIKE '%Z'
+        AND date NOT GLOB '*[+-][0-9][0-9]:[0-9][0-9]'
     """)
 
     set_schema_version(cursor, 2)
 
     conn.commit()
 
-    logger.info(
+    logger.debug(
         "Schema upgraded to V2"
     )
 
@@ -346,7 +179,7 @@ def migrate_v1_to_v2(cursor, conn):
 
 def migrate_v2_to_v3(cursor, conn):
 
-    logger.info(
+    logger.debug(
         "Starting V2 -> V3 migration"
     )
 
@@ -375,15 +208,30 @@ def migrate_v2_to_v3(cursor, conn):
                 ON DELETE CASCADE
         );
 
-        CREATE INDEX IF NOT EXISTS idx_tags_name
-        ON tags(name);
-
         CREATE INDEX IF NOT EXISTS idx_note_tags_note_id
         ON note_tags(note_id);
 
         CREATE INDEX IF NOT EXISTS idx_note_tags_tag_id
         ON note_tags(tag_id);
     """)
+
+    cursor.execute("PRAGMA table_info(notes)")
+    columns = {row["name"] for row in cursor.fetchall()}
+
+    if "tags" not in columns:
+
+        logger.debug(
+            "Legacy collumn 'note.tags' not found.  Nothin to migrate"
+        )
+
+        set_schema_version(cursor, 3)
+        conn.commit()
+
+        logger.debug(
+            "Schema upgraded to V3"
+        )
+
+        return
 
     cursor.execute("""
         SELECT id, tags
@@ -437,11 +285,45 @@ def migrate_v2_to_v3(cursor, conn):
 
     conn.commit()
 
-    logger.info(
+    logger.debug(
         "V3 migration completed "
         "(%s relations migrated)",
         migrated_relations
     )
+
+        
+# ============================================================
+# Migration V3 -> V4
+# ============================================================
+
+def migrate_v3_to_v4(cursor, conn):
+    logger.debug("Starting V3 -> V4 migration")
+
+    cursor.execute("PRAGMA table_info(notes)")
+    columns = {row["name"] for row in cursor.fetchall()}
+
+    if "fingerprint" not in columns:
+        logger.debug("Adding missing fingerprint column")
+        cursor.execute(
+            "ALTER TABLE notes ADD COLUMN fingerprint TEXT UNIQUE"
+        )
+    
+    backfill_fingerprints(cursor, conn)
+
+    cursor.executescript("""
+        CREATE INDEX IF NOT EXISTS idx_tags_name
+        ON tags(name);
+    """)
+    
+    cursor.executescript("""
+        ALTER TABLE notes RENAME COLUMN date TO created_at;
+        ALTER TABLE notes ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP;
+    """)
+
+    set_schema_version(cursor, 4)
+    conn.commit()
+
+    logger.debug("V4 migration completed")  
 
 
 # ============================================================
@@ -450,10 +332,10 @@ def migrate_v2_to_v3(cursor, conn):
 
 def migrate_database(
     db_path: Path,
-    legacy_dir: Path | None = None
+    legacy_dir: Path = None
 ) -> None:
 
-    logger.info(
+    logger.debug(
         "Starting database migrations"
     )
 
@@ -467,12 +349,8 @@ def migrate_database(
 
         cursor = conn.cursor()
 
-        version = get_schema_version(cursor)
-
-        logger.info(
-            "Current schema version: %d",
-            version
-        )
+        initial_version = get_schema_version(cursor)
+        version = initial_version
 
         if version < 1:
 
@@ -499,7 +377,19 @@ def migrate_database(
                 cursor,
                 conn
             )
+            
+            version = get_schema_version(cursor)
+        
+        if version < 4:
+        	
+        	migrate_v3_to_v4(
+        		cursor,
+        		conn
+        	)
+        	
+        	version = get_schema_version(cursor)
 
-        logger.info(
-            "Database migrations completed"
-        )
+        if version == initial_version:
+            logger.debug("Schema is up to date (version %d)", version)
+        else:
+            logger.info("Migrated schema from version %d to %d", initial_version, version)
