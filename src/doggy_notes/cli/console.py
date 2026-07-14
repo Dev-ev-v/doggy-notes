@@ -150,7 +150,7 @@ class Console:
             items_to_show = items or []
 
         if not items_to_show:
-            self.warning("No notes found.")
+            self.warning("No notes to show")
             return
 
         if groups:
@@ -185,9 +185,7 @@ class Console:
             tables.append(table)
 
         columns = Columns(tables, equal=True, expand=False)
-        self.write("")
         self.write(Align.center(columns))
-        self.write("")
 
     
     def _create_table(self, items: list[str], title: str, start_index: int = 1):

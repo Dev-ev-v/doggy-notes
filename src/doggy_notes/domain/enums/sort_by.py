@@ -1,5 +1,5 @@
 from enum import Enum
 
 class SortBy(str, Enum):
-    date = "date"
+    created_at = "created_at"
     title = "title"

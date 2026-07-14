@@ -17,7 +17,7 @@ class ListNotesUseCase:
             "reverse": False,
             "description": "A-Z",
         },
-        "date": {
+        "created_at": {
             "reverse": True,
             "description": "Recent first"
         },
@@ -25,7 +25,7 @@ class ListNotesUseCase:
 
     SORT_KEYS = {
         "title": lambda n: n.title.lower(),
-        "date": lambda n: n.date,
+        "created_at": lambda n: n.created_at,
     }
 
     def __init__(self, service):
@@ -34,7 +34,7 @@ class ListNotesUseCase:
     def resolve_notes(
         self,
         tags: list[str] | None = None,
-        sort_by: SortBy = SortBy.date,
+        sort_by: SortBy = SortBy.created_at,
         limit: int | None = None,
         order: SortDirection = None,
         mode: Mode = Mode.AND,

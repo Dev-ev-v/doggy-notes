@@ -7,6 +7,7 @@ from doggy_notes.domain.exceptions.note_errors import (
     NoteEmptyStorageError,
     SearchFilterError,
     NoteNotFoundError,
+    NoteAmbiguousIDError,
 )
 from doggy_notes.domain.enums.note_field import NoteField
 from doggy_notes.domain.enums.mode import Mode
@@ -26,7 +27,7 @@ def _run_read(*, note_ids=None, tags=None, fields=NoteField.content, entire=Fals
         
         deps.console.read(formatted)
         
-    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError,) as e:
+    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
         deps.console.error(deps.error_presenter.format(e))
 
 
@@ -115,7 +116,7 @@ def _get_formatted(result, fields, entire, deps):
 
     else:
         notes = [
-        	deps.note_presenter._resume_notes(note)
+        	deps.note_presenter.resume_notes(note)
     		for note in result.items
 		]
         text.append(Text("\n\n").join(notes))

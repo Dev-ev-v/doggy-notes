@@ -25,9 +25,9 @@ def list_app(
         help="Maximum number of notes to display",
     ),
     sort_by: SortBy = typer.Option(
-        SortBy.date,
+        SortBy.created_at,
         "--sort",
-        help="Sort by: 'date' (newest first) or 'title' (alphabetical)",
+        help="Sort by: 'created_at' (newest first) or 'title' (alphabetical)",
         case_sensitive=False,
     ),
     order: SortDirection = typer.Option(
@@ -59,7 +59,7 @@ def list_app(
         	deps.console.warning(warn)
 
         rendered_items = [
-            deps.note_presenter._resume_note(item)
+            deps.note_presenter.resume_note(item)
             for item in result.items
         ]
         
@@ -79,7 +79,7 @@ def _get_rendered_groups(result, deps):
 	if result.groups:
 	   rendered_groups = {
             tag: [
-                deps.note_presenter._resume_note(item)
+                deps.note_presenter.resume_note(item)
                 for item in items
             ]
             for tag, items in result.groups.items()
