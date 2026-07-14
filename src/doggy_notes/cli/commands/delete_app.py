@@ -1,8 +1,9 @@
 import typer
 from typing import List, Optional
 
+from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNotFoundError, NoteEmptyStorageError, NoteAmbiguousIDError
+
 from doggy_notes.cli.dependencies import get_dependencies
-from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNotFoundError, NoteEmptyStorageError
 from doggy_notes.domain.enums.mode import Mode
 
 delete_app = typer.Typer(help="Delete notes")
@@ -31,11 +32,11 @@ def _run_delete(*, note_ids=None, tags=None, mode="AND", yes: bool):
         
         deps.console.success(f"{len(notes)} successfully notes deleted")
         
-        formatted_notes = [deps.note_presenter._resume_note(note) for note in notes]
+        formatted_notes = [deps.note_presenter.resume_note(note) for note in notes]
         
         deps.console.list_notes(formatted_notes, "Deleted notes")
 
-    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError) as e:
+    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
         deps.console.error(deps.error_presenter.format(e))
 
 

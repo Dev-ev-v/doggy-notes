@@ -7,6 +7,7 @@ from doggy_notes.infra.persistence.sqlite_note_repository import SQLiteNoteRepos
 
 # === Domain ===
 from doggy_notes.domain.services.note_service import NoteService
+from doggy_notes.domain.config import NoteServiceConfig
 from doggy_notes.domain.services.editor_service import EditorService
 
 # === Application (Use Cases) ===
@@ -30,6 +31,7 @@ from doggy_notes.cli.parsers.id_parser import IDParser
 from doggy_notes.cli.console import Console
 from doggy_notes.cli.help_messages import HelpMessages
 
+
 class CommandDependencies(NamedTuple):
     service: NoteService
     console: Console
@@ -40,7 +42,7 @@ class CommandDependencies(NamedTuple):
     file_presenter: FilePresenter
     date_formatter: DateFormatter
     help_messages: HelpMessages
-    
+
     create_note: CreateNoteUseCase
     read_notes: ReadNotesUseCase
     delete_notes: DeleteNotesUseCase
@@ -49,109 +51,113 @@ class CommandDependencies(NamedTuple):
     legacy_importer: LegacyImporterUseCase
     export_notes: ExportNotesUseCase
 
+
 class DIContainer:
-    
+
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self):
         if self._initialized:
             return
-  
+
         self._initialized = True
-    
+
     # ===== Infra =====
-    
+
     @cached_property
     def paths(self):
         return build_paths()
-    
+
     @cached_property
     def repository(self) -> SQLiteNoteRepository:
-        return SQLiteNoteRepository(self.paths.database_file)       
-    
+        return SQLiteNoteRepository(self.paths.database_file, self.note_config)
+
     # ===== Domain =====
-    
+
+    @cached_property
+    def note_config(self) -> NoteServiceConfig:
+        return NoteServiceConfig()
+
     @cached_property
     def service(self) -> NoteService:
-        return NoteService(self.repository)
-        
+        return NoteService(self.repository, self.note_config)
+
     @cached_property
     def editor(self) -> EditorService:
-    	return EditorService()
-    
+        return EditorService()
+
     # ===== Presentation =====
-    
+
     @cached_property
     def console(self) -> Console:
         return Console()
-    
+
     @cached_property
     def tag_parser(self) -> TagParser:
         return TagParser()
-        
+
     @cached_property
     def id_parser(self) -> IDParser:
-        return IDParser()
-    
+        return IDParser(self.note_config)
+
     @cached_property
     def note_presenter(self) -> NotePresenter:
-        return NotePresenter()
-        
+        return NotePresenter(self.note_config)
+
     @cached_property
     def error_presenter(self) -> ErrorPresenter:
         return ErrorPresenter()
-    
+
     @cached_property
     def file_presenter(self) -> FilePresenter:
-       return FilePresenter()      
-    
+        return FilePresenter()
+
     @cached_property
     def date_formatter(self) -> DateFormatter:
         return DateFormatter()
-        
+
     @cached_property
     def help_messages(self) -> HelpMessages:
-       return HelpMessages()
-    
+        return HelpMessages()
+
     # ===== Use Cases =====
-    
+
     @cached_property
     def create_note(self) -> CreateNoteUseCase:
         return CreateNoteUseCase(self.service, self.editor)
-    
+
     @cached_property
     def read_notes(self) -> ReadNotesUseCase:
         return ReadNotesUseCase(self.service)
-    
+
     @cached_property
     def delete_notes(self) -> DeleteNotesUseCase:
         return DeleteNotesUseCase(self.service)
-    
+
     @cached_property
     def edit_note(self) -> EditNoteUseCase:
         return EditNoteUseCase(self.service, self.editor)
-    
+
     @cached_property
     def list_notes(self) -> ListNotesUseCase:
         return ListNotesUseCase(self.service)
-        
+
     @cached_property
     def legacy_importer(self) -> LegacyImporterUseCase:
-        return LegacyImporterUseCase(self.service)
-        
+        return LegacyImporterUseCase(self.service, self.tag_parser, self.id_parser, self.create_note)
+
     @cached_property
     def export_notes(self) -> ExportNotesUseCase:
         return ExportNotesUseCase(self.service)
-    
-    
+
     def get_command_dependencies(self) -> CommandDependencies:
-    
+
         return CommandDependencies(
             service=self.service,
             console=self.console,
@@ -170,7 +176,7 @@ class DIContainer:
             legacy_importer=self.legacy_importer,
             export_notes=self.export_notes,
         )
-            
+
 
 def get_container() -> DIContainer:
     return DIContainer()

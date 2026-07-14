@@ -8,6 +8,7 @@ from doggy_notes.domain.exceptions.note_errors import (
     NoteEmptyStorageError,
     SearchFilterError,
     NoteNotFoundError,
+    NoteAmbiguousIDError,
 )
 
 from doggy_notes.domain.enums.note_field import NoteField
@@ -44,7 +45,7 @@ def edit_app(
 
         _edit_field(new_text, old_text, note, field, deps)
 
-    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError,) as e:
+    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
         deps.console.error(deps.error_presenter.format(e))
 
 
@@ -59,7 +60,7 @@ def _edit_field(new_text, old_text, note, field, deps):
 
         if success:
         	deps.console.success("Note successfully updated")
-        	deps.console.panel(deps.note_presenter._resume_note(note))
+        	deps.console.panel(deps.note_presenter.resume_note(note))
         	
         	deps.console.write(f"[bold]Previous {field.value}:[/bold] {old_text}")
         	deps.console.write(f"[bold]New {field.value}:[/bold] {new_text}")

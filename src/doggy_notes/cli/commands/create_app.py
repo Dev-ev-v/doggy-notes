@@ -6,16 +6,16 @@ from doggy_notes.cli.dependencies import get_dependencies
 
 def create_app(
     content: str = typer.Argument(
-    	None,
+    	"",
         help="Main note content",
     ),
     title: Optional[str] = typer.Option(
-        "Untitled",
+        "",
         "--title",
         help="Note title (max 100 chars)",
     ),
     description: Optional[str] = typer.Option(
-        None,
+        "",
         "--description",
         "-d",
         help="Aditional note details",
@@ -41,14 +41,14 @@ def create_app(
         
         note = deps.create_note.generate_note(data)
         
-        success, error_msg = deps.create_note.execute(note)
+        success, error_messages = deps.create_note.execute(note)
         
         if success:
         	deps.console.success("Note successfully created")
-        	deps.console.panel(deps.note_presenter._resume_note(note))
+        	deps.console.panel(deps.note_presenter.resume_note(note))
         
-        if error_msg:
-        	deps.console.error(error_msg)
+        if error_messages:
+        	deps.console.error(', '.join(error_messages))
         
     except (NoteValidationError, SearchFilterError) as e:
         deps.console.error(deps.error_presenter.format(e))

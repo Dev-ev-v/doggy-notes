@@ -4,14 +4,10 @@ import json
 from datetime import datetime, timezone
 
 from doggy_notes.domain.exceptions.note_errors import NoteImportationError
-
-from doggy_notes.cli.parsers.tag_parser import TagParser
-from doggy_notes.cli.parsers.id_parser import IDParser
+from doggy_notes.domain.dto.skipped_note import SkippedNoteData
 from doggy_notes.infra.paths import build_paths
-from doggy_notes.application.use_cases.create_note import CreateNoteUseCase
-from doggy_notes.domain.exceptions.note_errors import NoteImportationError
-
-from doggy_notes.domain.services.editor_service import EditorService
+from doggy_notes.application.validation.type_checker import validate_fields
+from doggy_notes.domain.entities.note import Note
 
 
 logger = logging.getLogger(__name__)
@@ -37,15 +33,16 @@ FIELDS_TO_REMOVE = (
 
 REQUIRED_FIELDS = (
 	"content",
+	"id",
 )
 
 class LegacyImporterUseCase:
 
-    def __init__(self, service):
+    def __init__(self, service, tag_parser, id_parser, create_note):
         self.service = service
-        self.tag_parser = TagParser()
-        self.id_parser = IDParser()
-        self.create_note = CreateNoteUseCase(self.service, EditorService)
+        self.tag_parser = tag_parser
+        self.id_parser = id_parser
+        self.create_note = create_note
 
 
     def resolve_output_path(self, output_path: Path | None = None) -> Path:
@@ -63,12 +60,12 @@ class LegacyImporterUseCase:
     def valid_file(self, file: Path) -> bool:
         valid_format = file.suffix in VALID_FORMATS
         
-        if file.suffix in ".json":
+        if file.suffix == ".json":
         	try:
-        		data = json.loads(file.read_text(encoding="utf-8"))        	
+        		json.loads(file.read_text(encoding="utf-8"))        	
         	except json.JSONDecodeError as e:
         	  raise NoteImportationError(
-        	  	f"'{file.name}' Is not a valid json file: the file may be corrupted or breaken"
+        	  	f"'{file.name}' Is not a valid json file: the file may be corrupted or broaken"
         	  ) from e        
         
         return valid_format        
@@ -88,7 +85,7 @@ class LegacyImporterUseCase:
 
         if data.get("notes"):
             for note_data in data["notes"]:
-                result, success, error_msg = self._save_note(note_data, json_file)
+                result, success, error_msg = self._save_note(note_data)
 
                 if success:
                     saved_notes.append(result)
@@ -99,7 +96,7 @@ class LegacyImporterUseCase:
                     errors.append(error_msg)
 
         else:
-            result, success, error_msg = self._save_note(data, json_file)
+            result, success, error_msg = self._save_note(data)
 
             if success:
                 saved_notes.append(result)
@@ -130,7 +127,7 @@ class LegacyImporterUseCase:
     @staticmethod
     def _parse_timestamp(value: str) -> str:
         if not value:
-            raise ValueError("Empty timestamp")
+            return ""
 
         try:
             dt = datetime.fromisoformat(value)
@@ -153,23 +150,43 @@ class LegacyImporterUseCase:
             except ValueError:
                 continue
 
-        raise ValueError(f"Unsupported timestamp format: {value}")
+        return ""
 
 
-    def _save_note(self, original_note_data: dict, json_file: Path):
+    def _save_note(self, original_note_data: dict):
 
         note_data = original_note_data.copy()
 
-        note_data_date = (
+        note_data_creation = (
             note_data.get("created_at")
             or note_data.get("date")
             or note_data.get("time")
             or ""
         )
-
-        timestamp = self._parse_timestamp(note_data_date)
-
+        
+        timestamp = self._parse_timestamp(note_data_creation)
+        
+        if timestamp:
+        	note_data["created_at"] = timestamp
+        else:
+        	note_data.pop("created_at", None)
+        	
         note_data = self.clean(note_data)
+        
+        missing = [f for f in REQUIRED_FIELDS if not note_data.get(f)]
+        type_errors = validate_fields(note_data, Note)
+        
+        if missing or type_errors:
+        	reasons = []
+        	if missing:
+        		reasons.append(f"Missing {', '.join(missing)}")
+        	reasons.extend(type_errors)
+        	
+        	return (
+            	self._build_skip(original_note_data, timestamp, reasons),
+          	  False,
+        	    "; ".join(reasons)
+     	   )
 
         note_data_id = note_data.get("id")
         normalized_id = self.id_parser.parse_id(note_data_id)
@@ -181,28 +198,39 @@ class LegacyImporterUseCase:
             )
             
             return (
-                original_note_data,
+                self._build_skip(original_note_data, timestamp, "Invalid ID format"),
                 False,
                 f"Note {original_note_data.get('id')} not imported: invalid ID format"
             )
-            
-        if not note_data.get("content"):
-        	return original_note_data, False, f"Note {normalized_id} without content"
 
         tags = note_data.get("tags", [])
         normalized_tags = self.tag_parser.parse_tags(tags)
 
-        note_data["created_at"] = timestamp
         note_data["tags"] = normalized_tags
+        note_data["id"] = normalized_id
 
         note = self.create_note.generate_note(note_data)
 
-        success, error_msg = self.create_note.execute(note)
+        success, error_messages = self.create_note.execute(note)
 
         if not success:
-            return original_note_data, False, error_msg
+            return self._build_skip(original_note_data, timestamp, error_messages), False, error_messages
 
-        return note, success, error_msg
+        return note, success, error_messages
+        
+    
+    def _build_skip(self, original_note_data: dict, timestamp: str, reason) -> SkippedNoteData:
+    	
+    	preview = original_note_data.get("title") or original_note_data.get("content") or "Untitled"
+    	id = str(original_note_data.get("id")) or "No ID"
+    	reasons = reason if isinstance(reason, list) else [reason]
+    	
+    	return SkippedNoteData(
+    	    preview=str(preview)[:30],
+    	    short_id = id[:8],
+   	     date=timestamp or None,
+     	   errors=reasons,
+	    )
 
 
     def _get_latest_export(self, exports_dir: Path) -> Path | None:

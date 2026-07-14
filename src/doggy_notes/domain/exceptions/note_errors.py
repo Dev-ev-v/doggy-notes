@@ -122,4 +122,11 @@ class NoteImportationError(NoteException):
 	
 	def __init__(self, message: str = ""):
 		msg = message or "Cannot complete note importation"
-		super().__init__(msg, code="NOTE_IMPORTATION_ERROR")                                                                              
+		super().__init__(msg, code="NOTE_IMPORTATION_ERROR")
+		
+
+class NoteAmbiguousIDError(NoteException):
+    def __init__(self, short_id: str, count: int):
+        self.short_id = short_id
+        self.count = count
+        super().__init__(f"Short ID '{short_id}' matches {count} notes, use the full ID", code="NOTE_AMBIGUOUS_ID_ERROR")		                                                                                                                                                		                                                                                                                                                

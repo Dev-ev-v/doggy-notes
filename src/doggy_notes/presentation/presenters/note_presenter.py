@@ -3,12 +3,17 @@ from dataclasses import dataclass
 
 from doggy_notes.presentation.formatters.date_formatter import DateFormatter
 from doggy_notes.domain.entities.note import Note
+from doggy_notes.domain.dto.skipped_note import SkippedNoteData
 
 
 class NotePresenter:
+    
+    
+    def __init__(self, config):
+        self.config = config
 
-    @staticmethod
-    def separate(width: int=115, color: str="Yellow", format: str="—"):
+
+    def separate(self, width: int=115, color: str="Yellow", format: str="—"):
         text = Text()
         text.append("\n\n")
         text.append(format * width, style=color)
@@ -16,8 +21,7 @@ class NotePresenter:
         return text
 
 
-    @staticmethod
-    def format_detail(note: Note) -> Text:
+    def format_detail(self, note: Note) -> Text:
         text = Text()
         
         text.append("ID: ", style="dim")
@@ -52,11 +56,10 @@ class NotePresenter:
         return text
 
 
-    @staticmethod
-    def format_values(note, fields):
+    def format_values(self, note, fields):
         text = Text()
         
-        text.append(NotePresenter._resume_note(note))
+        text.append(self.resume_note(note))
         text.append("\n\n")
         
         for field in fields:
@@ -78,9 +81,8 @@ class NotePresenter:
         return text
 
 
-    @staticmethod
-    def _resume_note(note: Note) -> Text:
-        short_id = note.id[:8]
+    def resume_note(self, note: Note) -> Text:
+        short_id = note.id[:self.config.short_id_length]
         title = note.title or "Untitled"
         created_at = DateFormatter.to_relative(str(note.created_at))
         text = Text()
@@ -94,3 +96,21 @@ class NotePresenter:
         text.append(")", style="dim")
 
         return text
+        
+    
+    def resume_data(self, skipped: SkippedNoteData) -> Text:
+    	
+    	date = skipped.date if skipped.date else "Unknown date"
+    	text = Text()
+    	
+    	text.append("[", style="dim")
+    	text.append(skipped.short_id, style="id")
+    	text.append("] ", style="dim")
+    	text.append(skipped.preview[:self.config.max_title_length])
+    	text.append(" (", style="dim")
+    	text.append(date, style="date")
+    	text.append(")", style="dim")
+    	text.append(" - ", style="error")
+    	text.append(', '.join(skipped.errors), style="error")
+    	
+    	return text    		

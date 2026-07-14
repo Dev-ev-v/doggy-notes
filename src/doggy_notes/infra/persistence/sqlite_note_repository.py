@@ -6,17 +6,18 @@ from doggy_notes.domain.entities.note import Note
 from doggy_notes.domain.repositories.note_repository import NoteRepository
 from doggy_notes.infra.persistence.mappers.note_mapper import NoteMapper
 
-from doggy_notes.domain.exceptions.note_errors import NoteImportationError
+from doggy_notes.domain.exceptions.note_errors import NoteImportationError, NoteAmbiguousIDError
 
 logger = logging.getLogger(__name__)
 
 
 class SQLiteNoteRepository(NoteRepository):
 
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, note_config):
         self.conn = sqlite3.connect(str(db_path))
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
+        self.note_config = note_config
 
     # -------------------------
     # CREATE
@@ -70,6 +71,9 @@ class SQLiteNoteRepository(NoteRepository):
             (note_id,)
         )
         row = cursor.fetchone()
+        notes_qnt = len(row) if row else 0
+        
+        logger.debug("%d notes found with ID %s", notes_qnt, note_id)
 
         if not row:
             return None
@@ -80,15 +84,18 @@ class SQLiteNoteRepository(NoteRepository):
 
 
     def get_by_short_id(self, short_id: str) -> Note | None:
-        cursor = self.conn.execute("""
-            SELECT * FROM notes
-            WHERE substr(id, 1, 8) = ?
-        """, (short_id,))
+        cursor = self.conn.execute(f"""
+     	   SELECT * FROM notes
+  	      WHERE substr(id, 1, {self.note_config.short_id_length}) = ?
+  	  """, (short_id,))
 
         rows = cursor.fetchall()
+        notes_qnt = len(rows) if rows else 0
+        
+        logger.debug("%d notes found with ID %s", notes_qnt, short_id)
 
         if len(rows) > 1:
-            raise ValueError(f"Short ID collision: {len(rows)} results")
+        	raise NoteAmbiguousIDError(short_id, len(rows))
 
         if not rows:
             return None
@@ -198,14 +205,14 @@ class SQLiteNoteRepository(NoteRepository):
         return notes
 
 
-    def _exists_by_fingerprint(self, fingerprint: str) -> str | None:
+    def exists_by_fingerprint(self, fingerprint: str) -> str | None:
         row = self.conn.execute(
         	"SELECT id FROM notes WHERE fingerprint = ?",
         	(fingerprint,)).fetchone()
         return row["id"] if row else None
                 
     
-    def _exists_by_id(self, id: str) -> bool:
+    def exists_by_id(self, id: str) -> bool:
         row = self.conn.execute(
         	"SELECT 1 FROM notes WHERE id = ?", (id,)).fetchone()
         return row is not None

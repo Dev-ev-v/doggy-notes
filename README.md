@@ -14,6 +14,7 @@ Create and manage notes quickly without leaving the command line.
 - Creation timestamps
 - Read notes in details
 - Edit notes
+- Export and import notes
 
 ## Installation
 
@@ -67,6 +68,8 @@ doggy delete id 12345678
 | edit  | Edit note |
 | info | Show runtime informations |
 | path | Show  doggy-notes files |
+| import | Import notes |
+| export | Export notes |
 
 ## Storage
 
@@ -81,7 +84,7 @@ Example structure:
  "title":"Note",
  "description":"How to use argparse + examples"
  "tags":["python","cli"],
- "date":"2026-06-19 22:42:41.433805+00:00"
+ "created_at":"2026-07-14 15:33:30.433805+00:00"
 }
 ```
 
@@ -89,14 +92,15 @@ Example structure:
 
 Planned:
 
-- Export notes
-- Import notes
 - Encryption
 - Backup support
 - README support
 - Filter notes dedicated function
 - Dedicated examples file
 - Personalizated theme colors
+- Notes with password
+- Notes trash can
+- More personalization
 
 ## Why This Project
 

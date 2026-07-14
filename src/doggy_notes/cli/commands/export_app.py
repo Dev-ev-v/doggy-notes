@@ -2,8 +2,9 @@ import typer
 from typing import Optional, List
 from pathlib import Path
 
+from doggy_notes.domain.exceptions.note_errors import NoteImportationError, NoteNotFoundError, SearchFilterError, NoteEmptyStorageError, NoteAmbiguousIDError
+
 from doggy_notes.cli.dependencies import get_dependencies
-from doggy_notes.domain.exceptions.note_errors import NoteImportationError, NoteNotFoundError, SearchFilterError, NoteEmptyStorageError
 from doggy_notes.domain.enums.mode import Mode
 
 export_app = typer.Typer(help="Export notes")
@@ -26,7 +27,7 @@ def _run_export(*, note_ids=None, tags=None, mode="AND", path=None):
         deps.console.panel(str(file))
 
         
-    except (NoteImportationError, NoteNotFoundError, SearchFilterError, NoteEmptyStorageError) as e:
+    except (NoteImportationError, NoteNotFoundError, SearchFilterError, NoteEmptyStorageError, NoteAmbiguousIDError) as e:
         deps.console.error(e)
 
 

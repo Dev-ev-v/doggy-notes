@@ -59,7 +59,7 @@ def list_app(
         	deps.console.warning(warn)
 
         rendered_items = [
-            deps.note_presenter._resume_note(item)
+            deps.note_presenter.resume_note(item)
             for item in result.items
         ]
         
@@ -79,7 +79,7 @@ def _get_rendered_groups(result, deps):
 	if result.groups:
 	   rendered_groups = {
             tag: [
-                deps.note_presenter._resume_note(item)
+                deps.note_presenter.resume_note(item)
                 for item in items
             ]
             for tag, items in result.groups.items()

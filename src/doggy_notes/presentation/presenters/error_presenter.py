@@ -30,11 +30,11 @@ class ErrorPresenter:
 		    	
 		    	for key, value in error.filters.items():
 		    		text.append(f"\n[bold red]{key}:[/bold red] ")
+		    		
 		    		if key == "ids":
 		    			style="id"
 		    		elif key == "tags":
 		    			style="tag"
-		    		
 		    		text.append(f"[{style}]{', '.join(value)}[/{style}]")
 		    
 		    case NoteEmptyStorageError():
