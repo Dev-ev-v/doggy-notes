@@ -1,7 +1,7 @@
 import typer
 from typing import List, Optional
 
-from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNotFoundError, NoteEmptyStorageError, NoteAmbiguousIDError
+from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNotFoundError, NoteEmptyStorageError, NoteAmbiguousIDError, NoteOperationError
 
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.enums.mode import Mode
@@ -65,7 +65,7 @@ def restore(
 	deps = get_dependencies()
 	try:
 	    if tags and note_ids:
-	    	raise SearchFilterError()
+	    	raise NoteOperationError("Select one selection method: use tag or id, not both")
 	    parsed_ids = deps.id_parser.parse_ids(note_ids)
 	    parsed_tags = deps.tag_parser.parse_tags(tags)
 	    
@@ -89,7 +89,7 @@ def restore(
 	    
 	    deps.console.list_notes(formatted_notes, "Restored notes")
 	
-	except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
+	except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError, NoteOperationError) as e:
 		deps.console.error(deps.error_presenter.format(e))
 
 
@@ -114,7 +114,7 @@ def delete(
 	try:
 	    parsed_ids = deps.id_parser.parse_ids(note_ids)
 	    if not parsed_ids and not all:
-	    	raise SearchFilterError()
+	    	raise NoteOperationError("No notes selected")
 	    
 	    result = deps.trash_notes.resolve_notes(
 	        ids=parsed_ids,
@@ -141,5 +141,5 @@ def delete(
 	    
 	    deps.console.list_notes(formatted_notes, "Deleted notes")
 	
-	except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
+	except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError, NoteOperationError) as e:
 		deps.console.error(deps.error_presenter.format(e))

@@ -358,14 +358,16 @@ class LegacyImporterUseCase:
         )
 
     
-    def _get_latest_export(self, exports_dir: Path) -> Path | None:
-        exports = list(exports_dir.glob("export_*.json"))
-
-        if not exports:
-            logger.warning("No exportations found in %s", exports_dir)
-            return None
-
-        return max(exports, key=lambda f: f.stem.removeprefix("export_"))
+    def _get_latest_export(self, exports_dir: Path) -> Path | None:    	
+    	exports = []
+    	for fmt in VALID_FORMATS:
+    		exports.extend(exports_dir.glob(f"export_*{fmt}"))
+    		
+    	if not exports:
+    	   logger.warning("No exportations found in %s", exports_dir)
+    	   return None
+    	
+    	return max(exports, key=lambda f: f.stem.removeprefix("export_"))
 
     
     def _remove_old_fields(self, note_data):

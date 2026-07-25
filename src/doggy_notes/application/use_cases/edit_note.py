@@ -17,7 +17,9 @@ class EditNoteUseCase:
 		self.editor = editor
 		
 	
-	def open_editor(self, initial_text: str) -> str:
+	def open_editor(self, initial_text: str | list) -> str:
+		if isinstance(initial_text, list):
+			initial_text = ", ".join(initial_text)
 		return self.editor.open_editor(initial_text)
 
 	

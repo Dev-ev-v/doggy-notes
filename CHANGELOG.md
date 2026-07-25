@@ -7,7 +7,7 @@
 - Added a Trash system, allowing deleted notes to be recovered before permanent removal.
 - Added Markdown (`.md`) export and import support.
 - Added plain text (`.txt`) export support.
-- Added extra confirmation prompts before permanently deleting notes from the Trash, reducing the risk of accidental data loss.
+- Added extra confirmation prompts before permanently deleting notes from the Trash, reducing the risk of accidental data loss.  Uses readchar
 - Added a database optimization utility to reclaim unused SQLite storage space and reduce database size.
 
 ### Changed

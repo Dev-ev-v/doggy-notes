@@ -18,7 +18,7 @@ class NoteService:
 		self.config = config or NoteServiceConfig()
 
 	
-	def validate_note(self, note, verify_id: bool = True):
+	def validate_note(self, note, verify_id: bool = True, verify_fingerprint = True):
 		
 		valid = True
 		messages = []
@@ -34,10 +34,11 @@ class NoteService:
 			valid = False
 			messages.append(msg)
 
-		valid_fingerprint, msg = self._validate_fingerprint(note)
-		if not valid_fingerprint:
-			valid = False
-			messages.append(msg)
+		if verify_fingerprint:
+			valid_fingerprint, msg = self._validate_fingerprint(note)
+			if not valid_fingerprint:
+				valid = False
+				messages.append(msg)
 
 		valid_content, msg = self._validate_content(note)
 		if not valid_content:
@@ -55,7 +56,7 @@ class NoteService:
 
 	
 	def update(self, note):
-		success, msg = self.validate_note(note, False)
+		success, msg = self.validate_note(note, False, False)
 		if success:
 			self.repo.update(note)
 		return success, msg
@@ -90,7 +91,7 @@ class NoteService:
 		else:
 			result = self._get_all(trash)
 
-		self._is_empty(result, ids, tags)
+		self._is_empty(result, ids, tags, trash)
 
 		return result
 
@@ -201,7 +202,9 @@ class NoteService:
 		return items
 
 	
-	def _is_empty(self, result, ids, tags):
+	def _is_empty(self, result, ids, tags, trash):
+		storage = "trash" if trash else "database"
+	
 		if result.is_empty:
 			if tags:
 				filters = {}
@@ -211,4 +214,5 @@ class NoteService:
 				filters = {}
 				filters["ids"] = ids
 				raise NoteNotFoundError(filters)
-			raise NoteEmptyStorageError("Empty storage, create a note first")
+				
+			raise NoteEmptyStorageError(f"Empty {storage}")
