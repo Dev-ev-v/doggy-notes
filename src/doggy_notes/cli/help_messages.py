@@ -17,3 +17,5 @@ class HelpMessages():
     IMPORT_APP_MESSAGE = "Import a note outside doggy-notes app or from exports_dir"
     
     EXPORT_APP_MESSAGE = "Export a note inside doggy-notes storage in json format"
+    
+    TRASH_APP_MESSAGE = "Manage trash app"

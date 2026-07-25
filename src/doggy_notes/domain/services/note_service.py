@@ -59,10 +59,18 @@ class NoteService:
 		if success:
 			self.repo.update(note)
 		return success, msg
-
+		
 	
 	def delete(self, note):
 		self.repo.delete(note)
+
+	
+	def add_to_trash(self, note):
+		self.repo.add_to_trash(note)
+		
+	
+	def restore_from_trash(self, note):
+		self.repo.restore_from_trash(note)
 
 	
 	def get(
@@ -70,16 +78,17 @@ class NoteService:
 		ids: Optional[list[str]] = None,
 		tags: Optional[list[str]] = None,
 		mode: Mode = Mode.AND,
+		trash: bool = False,
 	) -> QueryResult:
 
 		if ids:
-			result = self._get_by_ids(ids)
+			result = self._get_by_ids(ids, trash)
 
 		elif tags:
-			result = self._get_by_tags(tags, mode)
+			result = self._get_by_tags(tags, mode, trash)
 
 		else:
-			result = self._get_all()
+			result = self._get_all(trash)
 
 		self._is_empty(result, ids, tags)
 
@@ -127,9 +136,9 @@ class NoteService:
 		return True, None
 
 	
-	def _get_by_ids(self, ids: list[str]) -> QueryResult:
+	def _get_by_ids(self, ids: list[str], trash: bool) -> QueryResult:
 		groups = {
-			id: self._fetch_by_id(id)
+			id: self._fetch_by_id(id, trash)
 			for id in ids
 		}
 		items = self._flatten_groups(groups)
@@ -140,9 +149,9 @@ class NoteService:
 		)
 
 	
-	def _get_by_tags(self, tags: list[str], mode: str) -> QueryResult:
+	def _get_by_tags(self, tags: list[str], mode: str, trash: bool) -> QueryResult:
 		groups = {}
-		result = self.repo.get_by_tags(tags, mode)
+		result = self.repo.get_by_tags(tags, mode, trash)
 
 		if mode == "OR":
 
@@ -163,8 +172,8 @@ class NoteService:
 		)
 
 	
-	def _get_all(self) -> QueryResult:
-		items = self.repo.get_all()
+	def _get_all(self, trash: bool) -> QueryResult:
+		items = self.repo.get_all(trash)
 		return QueryResult(
 			items=items,
 			groups={},
@@ -172,12 +181,12 @@ class NoteService:
 		)
 
 	
-	def _fetch_by_id(self, id: str):
+	def _fetch_by_id(self, id: str, trash: bool):
 		is_short_id = len(id) == self.config.short_id_length
 		result = (
-			self.repo.get_by_short_id(id)
+			self.repo.get_by_short_id(id, trash)
 			if is_short_id
-			else self.repo.get_by_id(id)
+			else self.repo.get_by_id(id, trash)
 		)
 		return result if isinstance(result, list) else [result] if result else []
 

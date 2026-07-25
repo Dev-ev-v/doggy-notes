@@ -6,7 +6,7 @@ from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNot
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.enums.mode import Mode
 
-delete_app = typer.Typer(help="Delete notes")
+delete_app = typer.Typer(help="Add notes to trash")
 
 
 def _run_delete(*, note_ids=None, tags=None, mode="AND", yes: bool):
@@ -23,18 +23,18 @@ def _run_delete(*, note_ids=None, tags=None, mode="AND", yes: bool):
         
         notes = result.items
 
-        confirmed = yes or deps.console.confirm(f"{len(notes)} notes will be deleted. Continue?")
+        confirmed = yes or deps.console.confirm(f"{len(notes)} notes will be added to trash. Continue?")
         if not confirmed:
             deps.console.error("Operation cancelled")
             return
 
         deps.delete_notes.execute(result)
         
-        deps.console.success(f"{len(notes)} successfully notes deleted")
+        deps.console.success(f"{len(notes)} successfully added to trash")
         
         formatted_notes = [deps.note_presenter.resume_note(note) for note in notes]
         
-        deps.console.list_notes(formatted_notes, "Deleted notes")
+        deps.console.list_notes(formatted_notes, "Notes added to trash")
 
     except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
         deps.console.error(deps.error_presenter.format(e))

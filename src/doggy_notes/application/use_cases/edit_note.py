@@ -2,7 +2,7 @@ import typer
 import logging
 from datetime import datetime, timezone
 
-from doggy_notes.domain.entities.note import _build_fingerprint
+from doggy_notes.domain.entities.note import build_fingerprint
 from doggy_notes.domain.exceptions.note_errors import (
 	NoteEmptyStorageError,
 	SearchFilterError,
@@ -30,7 +30,7 @@ class EditNoteUseCase:
 	def execute(self, note, field: str, text: str):
 	   setattr(note, field, text)
 	   
-	   note.fingerprint = _build_fingerprint(note.title, note.content)
+	   note.fingerprint = build_fingerprint(note.title, note.content)
 	   note.updated_at = datetime.now(timezone.utc)
 	   
 	   success, error_msg = self.service.update(note)

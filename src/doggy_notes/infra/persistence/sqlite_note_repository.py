@@ -1,12 +1,13 @@
 import sqlite3
 import logging
 from pathlib import Path
+from contextlib import contextmanager
 
 from doggy_notes.domain.entities.note import Note
 from doggy_notes.domain.repositories.note_repository import NoteRepository
 from doggy_notes.infra.persistence.mappers.note_mapper import NoteMapper
 
-from doggy_notes.domain.exceptions.note_errors import NoteImportationError, NoteAmbiguousIDError
+from doggy_notes.domain.exceptions.note_errors import NoteAmbiguousIDError
 
 logger = logging.getLogger(__name__)
 
@@ -24,17 +25,12 @@ class SQLiteNoteRepository(NoteRepository):
     # -------------------------
 
     def create(self, note: Note) -> None:
-    			
-    	self.conn.execute("""
-    		INSERT INTO notes (content, title, description, created_at, updated_at, fingerprint, id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, NoteMapper.to_insert_row(note))
-    	self._save_tags(note.id, note.tags)
-    		
-    	self.conn.commit()
-    	logger.debug("Note %s successfully saved", note.id)
-    		
-    	return True
+    	with self._transaction("created", note.id):
+    		self.conn.execute("""
+    			INSERT INTO notes (content, title, description, created_at, updated_at, fingerprint, id)
+    			VALUES (?, ?, ?, ?, ?, ?, ?)
+    		""", NoteMapper.to_insert_row(note))
+    		self._save_tags(note.id, note.tags)
 
 
     # -------------------------
@@ -42,36 +38,64 @@ class SQLiteNoteRepository(NoteRepository):
     # -------------------------
 
     def update(self, note: Note) -> None:
-    	self.conn.execute("""
-            UPDATE notes
-            SET content = ?,
-            	title = ?,
-                description = ?,
-                updated_at = ?,
-                fingerprint = ?
-            WHERE id = ?
-        """, NoteMapper.to_update_row(note))
-        	
-    	self.conn.execute("""
-            DELETE FROM note_tags WHERE note_id = ?
-        """, (note.id,))
-       	 
-    	self._save_tags(note.id, note.tags)
-    	self.conn.commit()
-    	logger.debug("Note %s successfully updated", note.id)
+        with self._transaction("update", note.id):
+            self.conn.execute("""
+                UPDATE notes
+                SET content = ?, title = ?, description = ?, updated_at = ?, fingerprint = ?
+                WHERE id = ?
+            """, NoteMapper.to_update_row(note))
+            
+            self.conn.execute("DELETE FROM note_tags WHERE note_id = ?", (note.id,))
+            self._save_tags(note.id, note.tags)
 
 
+    # -------------------------
+    # DELETE
+    # -------------------------
+
+    def add_to_trash(self, note: Note) -> None:
+    	with self._transaction("added to trash", note.id):
+    	    self.conn.execute("""
+    	        UPDATE notes
+    	        SET deleted_at = strftime('%s', 'now')
+    	        WHERE id = ?
+    	    """, (note.id,))    	
+    	    	
+    	
+    def restore_from_trash(self, note: Note) -> None:
+    	with self._transaction("restored from trash", note.id):
+    	    self.conn.execute("""
+    	        UPDATE notes
+    	        SET deleted_at = NULL
+    	        WHERE id = ?""", (note.id,))    	    	   
+    	        
+    
+    def delete(self, note: Note) -> None:
+        with self._transaction("deleted from storage", note.id):
+        	self.conn.execute("""
+        	    DELETE FROM notes 
+        	    WHERE deleted_at IS NOT NULL
+        	    AND id = ?""", (note.id,))
+        
+        
     # -------------------------
     # READ
     # -------------------------
 
-    def get_by_id(self, note_id: str) -> Note | None:
-        cursor = self.conn.execute(
-            "SELECT * FROM notes WHERE id = ?",
-            (note_id,)
-        )
+    def get_by_id(self, note_id: str, trash: bool = False) -> Note | None:
+        
+        condition = "IS NOT NULL" if trash else "IS NULL"
+        location = "trash" if trash else "storage"
+        
+        logger.debug("Selecting notes by id %s from %s", note_id, location)
+        
+        cursor = self.conn.execute(f"""
+            SELECT * FROM notes 
+            WHERE deleted_at {condition}
+            AND id = ?
+        """, (note_id,))
         row = cursor.fetchone()
-        notes_qnt = len(row) if row else 0
+        notes_qnt = 1 if row else 0
         
         logger.debug("%d notes found with ID %s", notes_qnt, note_id)
 
@@ -83,16 +107,23 @@ class SQLiteNoteRepository(NoteRepository):
         return note
 
 
-    def get_by_short_id(self, short_id: str) -> Note | None:
+    def get_by_short_id(self, short_id: str, trash: bool = False) -> Note | None:
+        condition = "IS NOT NULL" if trash else "IS NULL"
+        location = "trash" if trash else "storage"
+        
+        logger.debug("Selecting notes by short_id %s from %s", short_id, location)
+        
         cursor = self.conn.execute(f"""
-     	   SELECT * FROM notes
-  	      WHERE substr(id, 1, {self.note_config.short_id_length}) = ?
-  	  """, (short_id,))
+            SELECT * FROM notes
+            WHERE deleted_at {condition}
+            AND substr(id, 1, ?) = ?
+        """, (self.note_config.short_id_length, short_id))
+
 
         rows = cursor.fetchall()
         notes_qnt = len(rows) if rows else 0
         
-        logger.debug("%d notes found with ID %s", notes_qnt, short_id)
+        logger.debug("%d notes found with short_id %s", notes_qnt, short_id)
 
         if len(rows) > 1:
         	raise NoteAmbiguousIDError(short_id, len(rows))
@@ -105,16 +136,26 @@ class SQLiteNoteRepository(NoteRepository):
         return note
 
 
-    def get_all(self) -> list[Note]:
-        cursor = self.conn.execute("""
-            SELECT * FROM notes ORDER BY created_at DESC
+    def get_all(self, trash: bool = False) -> list[Note]:
+        condition = "IS NOT NULL" if trash else "IS NULL"
+        location = "trash" if trash else "storage"
+        
+        logger.debug("Searching all notes from %s", location)
+        
+        cursor = self.conn.execute(f"""
+            SELECT * FROM notes
+            WHERE deleted_at {condition}
+            ORDER BY created_at DESC
         """)
 
         return self._map_rows_with_tags(cursor.fetchall())
 
 
-    def get_by_tags(self, tags: list[str], mode: str) -> list[Note]:
-        logger.debug("Searching notes by tags: %s", tags)
+    def get_by_tags(self, tags: list[str], mode: str, trash: bool = False) -> list[Note]:
+        condition = "IS NOT NULL" if trash else "IS NULL"
+        location = "trash" if trash else "storage"
+        
+        logger.debug("Searching notes by tags %s from %s", tags, location)
 
         if mode == "AND":
             placeholders = ",".join("?" * len(tags))
@@ -125,7 +166,8 @@ class SQLiteNoteRepository(NoteRepository):
                     ON notes.id = nt.note_id
                 JOIN tags t
                     ON t.id = nt.tag_id
-                WHERE t.name IN ({placeholders})
+                WHERE deleted_at {condition}
+                AND t.name IN ({placeholders})
                 GROUP BY notes.id
                 HAVING COUNT(DISTINCT t.name) = ?
             """, (*tags, len(tags)))
@@ -137,22 +179,15 @@ class SQLiteNoteRepository(NoteRepository):
                 FROM notes
                 JOIN note_tags nt ON notes.id = nt.note_id
                 JOIN tags t ON t.id = nt.tag_id
-                WHERE t.name IN ({placeholders})
+                WHERE deleted_at {condition}
+                AND t.name IN ({placeholders})
                 ORDER BY notes.created_at DESC
             """, (*tags,))
+            
+        else:
+        	raise ValueError(f"Invalid mode, must be 'AND' or 'OR', not {mode}")
 
         return self._map_rows_with_tags(cursor.fetchall())
-
-
-    # -------------------------
-    # DELETE
-    # -------------------------
-
-    def delete(self, note: Note) -> None:
-        logger.debug("Deleting note %s", note.id)
-        self.conn.execute("DELETE FROM notes WHERE id = ?", (note.id,))
-        self.conn.commit()
-        logger.debug("Note %s successfully deleted", note.id)
 
 
     # -------------------------
@@ -216,3 +251,19 @@ class SQLiteNoteRepository(NoteRepository):
         row = self.conn.execute(
         	"SELECT 1 FROM notes WHERE id = ?", (id,)).fetchone()
         return row is not None
+        
+    
+    # -------------------------
+    # HELPERS
+    # -------------------------
+    
+    @contextmanager
+    def _transaction(self, action: str, note_id: str):
+    	try:
+    		with self.conn:
+    			yield    	
+    	except sqlite3.Error:
+    		logger.exception("Cannot %s note %s", action, note_id)
+    		raise
+    	
+    	logger.debug("Note %s successfully %s", note_id, action)

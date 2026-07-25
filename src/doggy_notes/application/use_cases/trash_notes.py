@@ -1,7 +1,7 @@
 from doggy_notes.domain.exceptions.note_errors import NoteNotFoundError, NoteEmptyStorageError
 
 
-class DeleteNotesUseCase:
+class TrashNotesUseCase:
 
     def __init__(self, service):
         self.service = service
@@ -16,23 +16,23 @@ class DeleteNotesUseCase:
             ids=ids,
             tags=tags,
             mode=mode,
+            trash=True,
         )
 
         return result
 
 
-    def execute(
+    def restore(
         self,
-        result,
-    ):
-        
-        deleted = []
-        seen_ids = set()
-        for note in result.items:
-            if note.id in seen_ids:
-                continue
-            self.service.add_to_trash(note)
-            seen_ids.add(note.id)
-            deleted.append(note)
-
-        return deleted
+        notes,
+    ):        
+        for note in notes:
+        	self.service.restore_from_trash(note)
+        	
+    
+    def delete(
+        self,
+        notes,
+    ):        
+        for note in notes:
+        	self.service.delete(note)                                                

@@ -7,40 +7,44 @@ from doggy_notes.domain.exceptions.note_errors import (
 )
 
 class ErrorPresenter:
-	
-	@staticmethod
-	def format(error) -> Text:
-		text = Text()
-		match error:
-		    
-		    case SearchFilterError():
-		    	text.append(f"[underline]{error}:[/underline] \n\n")
-		    	text.append(f"[bold red]Filter:[/bold red] ")
-		    	text.append(f"[green]{error.filter}[/green] \n")
-		    	text.append(f"[bold red]Invalid values:[/bold red] ")
-		    	
-		    	if error.value == "ids":
-		    		style="id"
-		    	elif error.value == "tags":
-		    		style="tag"
-		    	text.append(f"[{style}]{error.value}[/{style}]")
-		    
-		    case NoteNotFoundError():
-		    	text.append(f"{error.message}\n")
-		    	
-		    	for key, value in error.filters.items():
-		    		text.append(f"\n[bold red]{key}:[/bold red] ")
-		    		
-		    		if key == "ids":
-		    			style="id"
-		    		elif key == "tags":
-		    			style="tag"
-		    		text.append(f"[{style}]{', '.join(value)}[/{style}]")
-		    
-		    case NoteEmptyStorageError():
-		    	text.append(str(error))
-		    
-		    case _:
-		    	text = error
-		
-		return text
+
+    @staticmethod
+    def format(error) -> Text:
+        text = Text()
+        match error:
+
+            case SearchFilterError():
+                text.append(f"{error}:\n\n", style="underline")
+                text.append("Filter: ", style="bold red")
+                text.append(f"{error.filter}\n", style="green")
+                text.append("Invalid values: ", style="bold red")
+
+                if error.value == "ids":
+                    style = "id"
+                elif error.value == "tags":
+                    style = "tag"
+                else:
+                    style = "white"
+                text.append(str(error.value), style=style)
+
+            case NoteNotFoundError():
+                text.append(f"{error.message}\n")
+
+                for key, value in error.filters.items():
+                    text.append(f"\n{key}: ", style="bold red")
+
+                    if key == "ids":
+                        style = "id"
+                    elif key == "tags":
+                        style = "tag"
+                    else:
+                        style = "white"
+                    text.append(", ".join(value), style=style)
+
+            case NoteEmptyStorageError():
+                text.append(str(error))
+
+            case _:
+                text.append(str(error))
+
+        return text

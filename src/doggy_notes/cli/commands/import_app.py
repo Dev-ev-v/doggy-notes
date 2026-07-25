@@ -49,41 +49,39 @@ def _run_import(output_path: Path, import_all, deps):
 		
 	
 def _import_file(output_path, deps):
-	is_valid_file = deps.legacy_importer.valid_file(output_path)
-		
-	if is_valid_file:
-		notes, errors, skipped_data = deps.legacy_importer.import_json_note(output_path)
-		
-	else:
-		raise NoteImportationError(f"File {output_path.name} does not have a valid format")
-		
-	return notes, errors, skipped_data
-	
+    is_valid_file = deps.legacy_importer.valid_file(output_path)
+
+    if is_valid_file:
+        notes, errors, skipped_data = deps.legacy_importer.import_file(output_path)
+    else:
+        raise NoteImportationError(f"File {output_path.name} does not have a valid format")
+
+    return notes, errors, skipped_data
+
 
 def _import_all_dir(output_path, deps):
-    saved_notes = []
-    error_messages = []
-    skipped_all = []
+    saved_notes, error_messages, skipped_all = [], [], []
 
-    for file in output_path.glob("*.json"):
-        notes, errors, skipped_data = deps.legacy_importer.import_json_note(file)
+    files = [f for f in output_path.iterdir() if f.suffix in VALID_FORMATS]
+
+    for file in files:
+        notes, errors, skipped_data = deps.legacy_importer.import_file(file)
         saved_notes.extend(notes)
         error_messages.extend(errors)
         skipped_all.extend(skipped_data)
 
     _format_output(saved_notes, error_messages, skipped_all, deps)
-			
+
 
 def _import_last_file(output_path, deps):
-	latest = deps.legacy_importer._get_latest_export(output_path)
-			
-	if latest:
-		notes, errors, skipped_data = deps.legacy_importer.import_json_note(latest)
-		
-	else:
-		raise NoteImportationError(f"No exportations found in {output_path.name}")
-		
-	return notes, errors, skipped_data
+    latest = deps.legacy_importer._get_latest_export(output_path)
+
+    if latest:
+        notes, errors, skipped_data = deps.legacy_importer.import_file(latest)
+    else:
+        raise NoteImportationError(f"No exportations found in {output_path.name}")
+
+    return notes, errors, skipped_data
 	
 
 def _format_output(saved_notes, error_messages, skipped_data, deps):

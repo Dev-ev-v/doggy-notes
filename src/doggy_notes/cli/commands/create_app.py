@@ -39,6 +39,8 @@ def create_app(
         	"tags": tags        
         }
         
+        deps.create_note.valid_data(data)
+        
         note = deps.create_note.generate_note(data)
         
         success, error_messages = deps.create_note.execute(note)

@@ -1,3 +1,6 @@
+import time
+import sys
+import readchar
 from math import ceil
 
 from rich.console import Console as RichConsole
@@ -229,3 +232,39 @@ class Console:
             "y",
             "yes",
         }
+        
+    
+    def confirm_with_countdown(self, seconds: int = 5) -> bool:
+    	start = time.time()
+    	
+    	if sys.platform == "win32":
+    	    import msvcrt
+    	    while time.time() - start < seconds:
+    	    	if msvcrt.kbhit() and msvcrt.getch().decode(errors="ignore").lower() == "q":
+    	    		self.error("\nCancelled")
+    	    		return False
+    	    	remaining = seconds - (time.time() - start)
+    	    	self.write(f"\r{remaining:4.1f}s remaining...", end="")
+    	    	time.sleep(0.25)
+    	else:
+    	    import select
+    	    import tty
+    	    import termios
+    	    
+    	    fd = sys.stdin.fileno()
+    	    old_settings = termios.tcgetattr(fd)
+    	    try:
+    	        tty.setcbreak(fd)
+    	        while time.time() - start < seconds:
+    	        	remaining = seconds - (time.time() - start)
+    	        	self.write(f"\r{remaining:4.1f}s remaining...", end="")
+    	        	
+    	        	ready, _, _ = select.select([sys.stdin], [], [], 0.25)
+    	        	if ready and sys.stdin.read(1).lower() == "q":
+    	        		self.error("\nCancelled")
+    	        		return False
+    	    finally:
+    	    	termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    	self.success("\nConfirmed")
+    	return True

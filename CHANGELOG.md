@@ -1,5 +1,29 @@
 # CHANGELOG.md
 
+## [3.2.0] - 2026-07-24
+
+### Added
+
+- Added a Trash system, allowing deleted notes to be recovered before permanent removal.
+- Added Markdown (`.md`) export and import support.
+- Added plain text (`.txt`) export support.
+- Added extra confirmation prompts before permanently deleting notes from the Trash, reducing the risk of accidental data loss.
+- Added a database optimization utility to reclaim unused SQLite storage space and reduce database size.
+
+### Changed
+
+- Legacy note import now supports migrations from all project versions up to `3.2.0`, making upgrades more reliable.
+- Import and export workflows have been expanded to support multiple file formats.
+- Improved data persistence and recovery workflows to better protect user notes.
+
+### Fixed
+
+- Fixed issues that could prevent legacy notes from being migrated correctly during upgrades.
+- Fixed import behavior to ensure imported notes are actually persisted instead of only passing schema validation.
+- Fixed several issues affecting note import reliability and data consistency.
+
+--
+
 ## [3.1.0] - 2026-07-14
 
 ### Added

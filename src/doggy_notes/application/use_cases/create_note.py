@@ -15,14 +15,11 @@ class CreateNoteUseCase:
         self.editor = editor                          
     
     
-    def valid_data(self, data: dict, auto: bool = False):
+    def valid_data(self, data: dict):
         if not data.get("content"):
-        	if not auto:
-        		data["content"] = self.editor.open_editor()
-        		if not data.get("content"):
-        			raise NoteValidationError("content", "Note with empty content")
-        	else:
-        		data["content"] = "No content"
+        	data["content"] = self.editor.open_editor()
+        	if not data.get("content"):
+        		raise NoteValidationError("content", "Note with empty content")
         
         
     def generate_note(self, data: dict):

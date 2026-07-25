@@ -8,6 +8,20 @@ from platformdirs import (
 
 APP_NAME = "doggy-notes"
 
+def get_exports_dir():
+	downloads = Path.home() / "Downloads"
+	download = Path.home() / "Download"
+	
+	if downloads.exists():
+		exports_dir = downloads	
+	elif download.exists():
+		exports_dir = download	
+	else:
+		exports_dir = Path.home() / APP_NAME / "exports"
+	
+	return exports_dir
+
+
 @dataclass(frozen=True)
 class Paths:
     config_dir: Path
@@ -25,16 +39,7 @@ def build_paths() -> Paths:
     data_dir = Path(user_data_dir(APP_NAME))
     cache_dir = Path(user_cache_dir(APP_NAME))
     backups_dir = data_dir / "backups"
-
-    downloads = Path.home() / "Downloads"
-    download = Path.home() / "Download"
-    
-    if downloads.exists():
-    	exports_dir = downloads
-    elif download.exists():
-    	exports_dir = download
-    else:
-    	exports_dir = Path.home() / APP_NAME / "exports"
+    exports_dir = get_exports_dir()
     
     for d in (config_dir, data_dir, cache_dir, backups_dir, exports_dir):
         d.mkdir(parents=True, exist_ok=True)

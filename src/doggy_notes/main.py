@@ -21,6 +21,7 @@ from doggy_notes.cli.commands.read_app import read_app
 from doggy_notes.cli.commands.path_app import path_app
 from doggy_notes.cli.commands.import_app import import_app
 from doggy_notes.cli.commands.export_app import export_app
+from doggy_notes.cli.commands.trash_app import trash_app
 
 from doggy_notes.cli.help_messages import HelpMessages
 
@@ -84,6 +85,8 @@ app.add_typer(delete_app, name="delete", help=HelpMessages.DELETE_APP_MESSAGE)
 app.add_typer(read_app, name="read", help=HelpMessages.READ_APP_MESSAGE)
 
 app.add_typer(export_app, name="export", help=HelpMessages.EXPORT_APP_MESSAGE)
+
+app.add_typer(trash_app, name="trash", help=HelpMessages.TRASH_APP_MESSAGE)
 
 app.command(name="create", help=HelpMessages.CREATE_APP_MESSAGE)(create_app)
 

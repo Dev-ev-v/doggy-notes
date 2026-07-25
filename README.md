@@ -14,7 +14,8 @@ Create and manage notes quickly without leaving the command line.
 - Creation timestamps
 - Read notes in details
 - Edit notes
-- Export and import notes
+- Multiple export and import formats
+- Trash to prevent accidental deletions
 
 ## Installation
 
@@ -70,6 +71,7 @@ doggy delete id 12345678
 | path | Show  doggy-notes files |
 | import | Import notes |
 | export | Export notes |
+| trash | Manage notes in trash |
 
 ## Storage
 
@@ -94,12 +96,11 @@ Planned:
 
 - Encryption
 - Backup support
-- README support
+- Automatic trash deletion
 - Filter notes dedicated function
 - Dedicated examples file
 - Personalizated theme colors
 - Notes with password
-- Notes trash can
 - More personalization
 
 ## Why This Project

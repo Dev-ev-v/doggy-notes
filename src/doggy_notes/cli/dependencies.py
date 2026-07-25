@@ -18,6 +18,7 @@ from doggy_notes.application.use_cases.edit_note import EditNoteUseCase
 from doggy_notes.application.use_cases.list_notes import ListNotesUseCase
 from doggy_notes.application.use_cases.legacy_importer import LegacyImporterUseCase
 from doggy_notes.application.use_cases.export_notes import ExportNotesUseCase
+from doggy_notes.application.use_cases.trash_notes import TrashNotesUseCase
 
 # === Presentation ===
 from doggy_notes.presentation.presenters.note_presenter import NotePresenter
@@ -50,6 +51,7 @@ class CommandDependencies(NamedTuple):
     list_notes: ListNotesUseCase
     legacy_importer: LegacyImporterUseCase
     export_notes: ExportNotesUseCase
+    trash_notes: TrashNotesUseCase
 
 
 class DIContainer:
@@ -155,6 +157,10 @@ class DIContainer:
     @cached_property
     def export_notes(self) -> ExportNotesUseCase:
         return ExportNotesUseCase(self.service)
+        
+    @cached_property
+    def trash_notes(self) -> TrashNotesUseCase:
+    	return TrashNotesUseCase(self.service)
 
     def get_command_dependencies(self) -> CommandDependencies:
 
@@ -175,6 +181,7 @@ class DIContainer:
             list_notes=self.list_notes,
             legacy_importer=self.legacy_importer,
             export_notes=self.export_notes,
+            trash_notes=self.trash_notes,
         )
 
 

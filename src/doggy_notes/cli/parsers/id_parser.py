@@ -15,7 +15,7 @@ class IDParser:
 	      
     def parse_id(self, raw_id: str) -> str:        	
         if not raw_id:
-            return "Empty ID"
+            return ""
             
         raw_id = str(raw_id)
         

@@ -5,7 +5,7 @@ from dataclasses import fields
 from doggy_notes.infra.paths import build_paths
 from doggy_notes.domain.entities.node import build_tree
 from doggy_notes.cli.dependencies import get_dependencies
-from doggy_notes.domain.exceptions.note_errors import SearchFilterError
+from doggy_notes.domain.exceptions.note_errors import PathNotFoundError
 
 
 def path_app(
@@ -27,7 +27,7 @@ def path_app(
             _handle_single_path(path, paths, show_size, deps)
         else:
             _handle_all_dirs(paths, show_size, deps)
-    except SearchFilterError as e:
+    except PathNotFoundError as e:
         deps.console.error(deps.error_presenter.format(e))
 
 
@@ -44,7 +44,7 @@ def _resolve_path(path: str, paths, deps) -> Path | None:
     resolved = Path(field_map[root_name]).joinpath(*parts[1:])
 
     if not resolved.exists():
-        raise SearchFilterError(f"Path does not exist: {resolved}")
+        raise PathNotFoundError(f"Path does not exist: {resolved}")
 
     return resolved
 

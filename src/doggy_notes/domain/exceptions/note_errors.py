@@ -124,6 +124,20 @@ class NoteImportationError(NoteException):
 		msg = message or "Cannot complete note importation"
 		super().__init__(msg, code="NOTE_IMPORTATION_ERROR")
 		
+		
+class NoteExportError(NoteException):
+	
+	def __init__(self, message: str = ""):
+		msg = message or "Cannot complete note exportation"
+		super().__init__(msg, code="NOTE_EXPORTATION_ERROR")		
+		
+		
+class PathNotFoundError(NoteException):
+	
+	def __init__(self, path: str):
+		msg = f"Path '{path}' does not exist"
+		super().__init__(msg, code="PATH_NOT_FOUND_ERROR")
+		
 
 class NoteAmbiguousIDError(NoteException):
     def __init__(self, short_id: str, count: int):
