@@ -163,7 +163,7 @@ class Console:
                 if filtered_items:
                     table = self._create_table(
                         filtered_items,
-                        title=f"Tag: {group_name}",
+                        title=f"{next(iter(filters))}: {group_name}",
                     )
                     rendered_tables.append(table)
 

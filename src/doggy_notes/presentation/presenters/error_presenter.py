@@ -1,36 +1,38 @@
 from rich.text import Text
 from doggy_notes.domain.exceptions.note_errors import (
-    NoteEmptyStorageError,
+    AppError,
+    ErrorCode,
     SearchFilterError,
     NoteNotFoundError,
-    NoteValidationError,
+    NoteEmptyStorageError,
 )
+
 
 class ErrorPresenter:
 
     @staticmethod
-    def format(error) -> Text:
+    def format(error: AppError) -> Text:
         text = Text()
         match error:
 
             case SearchFilterError():
-                text.append(f"{error}:\n\n", style="underline")
                 text.append("Filter: ", style="bold red")
-                text.append(f"{error.filter}\n", style="green")
+                text.append(f"{error.context['filter']}\n", style="green")
                 text.append("Invalid values: ", style="bold red")
 
-                if error.value == "ids":
+                value = error.context["value"]
+                if value == "ids":
                     style = "id"
-                elif error.value == "tags":
+                elif value == "tags":
                     style = "tag"
                 else:
                     style = "white"
-                text.append(str(error.value), style=style)
+                text.append(str(value), style=style)
 
             case NoteNotFoundError():
                 text.append(f"{error.message}\n")
 
-                for key, value in error.filters.items():
+                for key, value in error.context["filters"].items():
                     text.append(f"\n{key}: ", style="bold red")
 
                     if key == "ids":
@@ -42,7 +44,7 @@ class ErrorPresenter:
                     text.append(", ".join(value), style=style)
 
             case NoteEmptyStorageError():
-                text.append(str(error))
+                text.append(error.message)
 
             case _:
                 text.append(str(error))

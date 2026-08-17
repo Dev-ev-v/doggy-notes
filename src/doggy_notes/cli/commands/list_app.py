@@ -6,17 +6,18 @@ from doggy_notes.domain.enums.sort_direction import SortDirection
 from doggy_notes.domain.enums.sort_by import SortBy
 
 from doggy_notes.cli.dependencies import get_dependencies
-from doggy_notes.domain.exceptions.note_errors import (
-    NoteEmptyStorageError,
-    SearchFilterError,
-    NoteNotFoundError,
-)
+from doggy_notes.domain.exceptions.note_errors import AppError
 
 def list_app(
     tags: Optional[List[str]] = typer.Option(
         None,
         "--tag",
         help="Filter notes by tags (repeat option for multiple)",
+    ),
+    titles: Optional[List[str]] = typer.Option(
+    	None,
+    	"--title",
+    	help="Title to select notes (repeat option for multiple)",    
     ),
     limit: Optional[int] = typer.Option(
         None,
@@ -44,15 +45,14 @@ def list_app(
 ):
     
     deps = get_dependencies()
-    try:
-        unique_tags = deps.tag_parser.parse_tags(tags)
+    try:       
+        selector = deps.selector.build_selector(tags=tags, titles=titles, mode=mode)
 
         result, warnings = deps.list_notes.resolve_notes(
-            tags=unique_tags,
+        	selector,
             sort_by=sort_by,
             limit=limit,
             order=order,
-            mode=mode,
         )
      
         for warn in warnings:
@@ -71,18 +71,18 @@ def list_app(
             filters=result.filters,
         )
 
-    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError,) as e:
+    except AppError as e:
         deps.console.error(deps.error_presenter.format(e))
         
 
 def _get_rendered_groups(result, deps):	
 	if result.groups:
 	   rendered_groups = {
-            tag: [
+            i: [
                 deps.note_presenter.resume_note(item)
                 for item in items
             ]
-            for tag, items in result.groups.items()
+            for i, items in result.groups.items()
 	   }
 	
 	else:

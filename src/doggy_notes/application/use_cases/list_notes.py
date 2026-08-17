@@ -1,12 +1,5 @@
 from enum import Enum
 
-from doggy_notes.domain.exceptions.note_errors import (
-    NoteEmptyStorageError,
-    SearchFilterError,
-    NoteNotFoundError,
-)
-
-from doggy_notes.domain.enums.mode import Mode
 from doggy_notes.domain.enums.sort_direction import SortDirection
 from doggy_notes.domain.enums.sort_by import SortBy
 
@@ -28,16 +21,16 @@ class ListNotesUseCase:
         "created_at": lambda n: n.created_at,
     }
 
-    def __init__(self, service):
+    def __init__(self, service, resolver):
         self.service = service
+        self.resolver = resolver
 
     def resolve_notes(
         self,
-        tags: list[str] | None = None,
+        selector,
         sort_by: SortBy = SortBy.created_at,
         limit: int | None = None,
         order: SortDirection = None,
-        mode: Mode = Mode.AND,
     ):
         warnings = []
         
@@ -46,7 +39,7 @@ class ListNotesUseCase:
         	warnings.append(limit_warning)
         	limit = None
        
-        result = self.service.get(tags=tags, mode=mode)
+        result = self.resolver.resolve(selector)
 
         reverse = self._get_reverse(order, sort_by)
 

@@ -123,12 +123,17 @@ class LegacyImporterUseCase:
         )
 
     
-    def resolve_output_path(self, output_path: Path | None = None) -> Path:
+    def resolve_output_path(self, output_path: Path | None = None, exports_dir: Path | None = None) -> Path:
 
         if not output_path:
             logger.debug("No path provided, importing from last export in exports_dir")
             output_path = build_paths().exports_dir
 
+        if exports_dir:
+            exportations = exports_dir.iterdir()
+            if not output_path.name in exportations:
+            	raise ValueError()
+            
         if not output_path.exists():
             raise NoteImportationError("Selected path does not exist")
 

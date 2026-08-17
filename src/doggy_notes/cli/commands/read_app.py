@@ -3,31 +3,24 @@ from typing import Optional, List
 from rich.text import Text
 
 from doggy_notes.cli.dependencies import get_dependencies
-from doggy_notes.domain.exceptions.note_errors import (
-    NoteEmptyStorageError,
-    SearchFilterError,
-    NoteNotFoundError,
-    NoteAmbiguousIDError,
-)
+from doggy_notes.domain.exceptions.note_errors import AppError
 from doggy_notes.domain.enums.note_field import NoteField
 from doggy_notes.domain.enums.mode import Mode
 
 read_app = typer.Typer(help="Read notes")
 
 
-def _run_read(*, note_ids=None, tags=None, fields=NoteField.content, entire=False, mode="AND"):
+def _run_read(selector, fields=NoteField.content, entire=False):
     deps = get_dependencies()
     try:
-        parsed_ids = deps.id_parser.parse_ids(note_ids)
-        parsed_tags = deps.tag_parser.parse_tags(tags)
         
-        result = deps.read_notes.resolve_notes(ids=parsed_ids, tags=parsed_tags, mode=mode)
+        result = deps.read_notes.execute(selector)
         
         formatted = _get_formatted(result, fields, entire, deps)
         
         deps.console.read(formatted)
         
-    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
+    except AppError as e:
         deps.console.error(deps.error_presenter.format(e))
 
 
@@ -48,7 +41,10 @@ def read_by_id(
     ),
 ):
 
-    _run_read(note_ids=note_ids, fields=fields, entire=entire)
+    deps= get_dependencies()
+    
+    selector = deps.selector.build_selector(ids=note_ids)
+    _run_read(selector, fields=fields, entire=entire)
 
 
 @read_app.command("tag")
@@ -75,7 +71,34 @@ def read_by_tag(
     ),
 ):
 
-    _run_read(tags=tags, fields=fields, entire=entire, mode=mode)
+    deps = get_dependencies()
+    
+    selector = deps.selector.build_selector(tags=tags, mode=mode)
+    _run_read(selector, fields=fields, entire=entire)
+    
+    
+@read_app.command("title")
+def read_by_titles(
+    titles: Optional[List[str]] = typer.Argument(..., help="Read all notes with these title (repeat option for multiple)"
+    ),
+    fields: list[NoteField] = typer.Option(
+        [NoteField.content],
+        "--field",
+        "-f",
+        help="Field to display: 'content', 'title', 'description', or 'tags'",
+        case_sensitive=False,
+    ),
+    entire: bool = typer.Option(
+        False,
+        "--entire",
+        help="Display all fields (title, description, content, and tags)",
+    ),
+):
+
+    deps = get_dependencies()
+    
+    selector = deps.selector.build_selector(titles=titles)
+    _run_read(selector, fields=fields, entire=entire)    
 
 
 @read_app.command("all")
@@ -94,7 +117,10 @@ def read_all(
     ),
 ):
 	
-	_run_read(fields=fields, entire=entire)
+	deps = get_dependencies()
+	
+	selector = deps.selector.build_selector()
+	_run_read(selector, fields=fields, entire=entire)
 
 
 def _get_formatted(result, fields, entire, deps):

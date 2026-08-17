@@ -1,7 +1,7 @@
 import typer
 from typing import List, Optional
 
-from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNotFoundError, NoteEmptyStorageError, NoteAmbiguousIDError, NoteOperationError
+from doggy_notes.domain.exceptions.note_errors import AppError
 
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.enums.mode import Mode
@@ -18,18 +18,19 @@ def list_trash(
     mode: Mode = typer.Option(
     	Mode.AND, 
     	"--mode", 
-    	help="AND or OR search mode")
+    	help="AND or OR search mode"),
+    titles: List[str] = typer.Option(
+		None,
+		"--title",
+		help="Title to match notes")    
 ):
 	
 	deps = get_dependencies()
 	
 	try:
-	    parsed_tags = deps.tag_parser.parse_tags(tags)
+	    selector = deps.selector.build_selector(tags=tags, mode=mode, titles=titles)
 	    
-	    result = deps.trash_notes.resolve_notes(
-	        tags=parsed_tags, 
-	        mode=mode
-	    )
+	    result = deps.resolver.resolve(selector, trash=True)
 	    
 	    notes = result.items
 	    
@@ -37,7 +38,7 @@ def list_trash(
 	    
 	    deps.console.list_notes(formatted_notes, "Notes inside trash")
 	
-	except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
+	except AppError as e:
 		deps.console.error(deps.error_presenter.format(e))
 
 
@@ -55,6 +56,10 @@ def restore(
 		None, 
 		"--id",
 		help="Note ID(s) to restore"),
+	titles: List[str] = typer.Option(
+		None,
+		"--title",
+		help="Title to match notes"),
     yes: bool = typer.Option(
     	False, 
     	"--yes", 
@@ -64,16 +69,9 @@ def restore(
 	
 	deps = get_dependencies()
 	try:
-	    if tags and note_ids:
-	    	raise NoteOperationError("Select one selection method: use tag or id, not both")
-	    parsed_ids = deps.id_parser.parse_ids(note_ids)
-	    parsed_tags = deps.tag_parser.parse_tags(tags)
+	    selector = deps.selector.build_selector(tags=tags, mode=mode, ids=note_ids, titles=titles)
 	    
-	    result = deps.trash_notes.resolve_notes(
-	        ids=parsed_ids,
-	        tags=parsed_tags, 
-	        mode=mode
-	    )
+	    result = deps.resolver.resolve(selector, trash=True)
 	    
 	    notes = result.items
 	    
@@ -89,7 +87,7 @@ def restore(
 	    
 	    deps.console.list_notes(formatted_notes, "Restored notes")
 	
-	except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError, NoteOperationError) as e:
+	except AppError as e:
 		deps.console.error(deps.error_presenter.format(e))
 
 
@@ -112,13 +110,12 @@ def delete(
 	
 	deps = get_dependencies()
 	try:
-	    parsed_ids = deps.id_parser.parse_ids(note_ids)
-	    if not parsed_ids and not all:
-	    	raise NoteOperationError("No notes selected")
+	    if not all and not note_ids:
+	    	deps.console.error("Select notes to continue this operation")
+	    	raise typer.Exit()	    	
+	    selector = deps.selector.build_selector(ids=note_ids)
 	    
-	    result = deps.trash_notes.resolve_notes(
-	        ids=parsed_ids,
-	    )
+	    result = deps.resolver.resolve(selector, trash=True)
 	    
 	    notes = result.items
 	    
@@ -141,5 +138,5 @@ def delete(
 	    
 	    deps.console.list_notes(formatted_notes, "Deleted notes")
 	
-	except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError, NoteOperationError) as e:
+	except AppError as e:
 		deps.console.error(deps.error_presenter.format(e))

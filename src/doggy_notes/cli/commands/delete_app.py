@@ -1,67 +1,73 @@
 import typer
 from typing import List, Optional
 
-from doggy_notes.domain.exceptions.note_errors import SearchFilterError, NoteNotFoundError, NoteEmptyStorageError, NoteAmbiguousIDError
-
+from doggy_notes.domain.exceptions.note_errors import AppError
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.enums.mode import Mode
 
 delete_app = typer.Typer(help="Add notes to trash")
 
 
-def _run_delete(*, note_ids=None, tags=None, mode="AND", yes: bool):
+def _run_delete(selector, yes: bool):
     deps = get_dependencies()
     try:
-        parsed_ids = deps.id_parser.parse_ids(note_ids)
-        parsed_tags = deps.tag_parser.parse_tags(tags)
-        
-        result = deps.delete_notes.resolve_notes(
-            ids=parsed_ids,
-            tags=parsed_tags,
-            mode=mode,
-        )
-        
+        result = deps.resolver.resolve(selector)
         notes = result.items
-
-        confirmed = yes or deps.console.confirm(f"{len(notes)} notes will be added to trash. Continue?")
+        confirmed = yes or deps.console.confirm(
+            f"{len(notes)} notes will be added to trash. Continue?"
+        )
         if not confirmed:
             deps.console.error("Operation cancelled")
             return
 
-        deps.delete_notes.execute(result)
-        
+        deps.delete_notes.execute(notes)
         deps.console.success(f"{len(notes)} successfully added to trash")
-        
+
         formatted_notes = [deps.note_presenter.resume_note(note) for note in notes]
-        
         deps.console.list_notes(formatted_notes, "Notes added to trash")
 
-    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
+    except AppError as e:
         deps.console.error(deps.error_presenter.format(e))
 
 
 @delete_app.command("id")
 def delete_by_id(
     note_ids: List[str] = typer.Argument(..., help="Note ID(s) to delete"),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    yes: bool = typer.Option(False, "--yes", "-y"),
 ):
- 
-    _run_delete(note_ids=note_ids, yes=yes)
+    deps = get_dependencies()
+    
+    selector = deps.selector.build_selector(ids=note_ids)
+    _run_delete(selector, yes=yes)
 
 
 @delete_app.command("tag")
 def delete_by_tag(
     tags: List[str] = typer.Argument(..., help="Tag(s) to filter notes for deletion"),
-    mode: Mode = typer.Option(Mode.AND, "--mode", help="AND or OR search mode", case_sensitive=False),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    mode: Mode = typer.Option(Mode.AND, "--mode", case_sensitive=False),
+    yes: bool = typer.Option(False, "--yes", "-y"),
 ):
+    deps = get_dependencies()
     
-    _run_delete(tags=tags, mode=mode, yes=yes)
+    selector = deps.selector.build_selector(tags=tags, mode=mode)
+    _run_delete(selector, yes=yes)
+
+
+@delete_app.command("title")
+def delete_by_title(
+    titles: list[str] = typer.Argument(..., help="Titles (or part of it) to search notes for deletion"),
+    yes: bool = typer.Option(False, "--yes", "-y"),
+):
+    deps = get_dependencies()
+    
+    selector = deps.selector.build_selector(titles=titles)
+    _run_delete(selector, yes=yes)
 
 
 @delete_app.command("all")
 def delete_all(
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    yes: bool = typer.Option(False, "--yes", "-y"),
 ):
-    
-    _run_delete(yes=yes)
+    deps = get_dependencies()
+    selector = deps.selector.build_selector()
+    _run_delete(selector, yes=yes)

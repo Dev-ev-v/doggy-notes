@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 
 class ExportNotesUseCase:
 
-    def __init__(self, service):
+    def __init__(self, service, resolver):
         self.service = service
+        self.resolver = resolver
         self.mapper = NoteExportMapper
         self.formatter = DateFormatter
 
@@ -31,45 +32,34 @@ class ExportNotesUseCase:
 
         return output_path
 
-    def resolve_notes(
-        self,
-        ids: list[str] | None = None,
-        tags: list[str] | None = None,
-        mode: str = "AND",
-    ):
-        result = self.service.get(
-            ids=ids,
-            tags=tags,
-            mode=mode,
-        )
+    def execute(self, selector, output_path=None, suffix: ExportFileFormat = ExportFileFormat.json):
 
-        return result
-
-    def execute(self, result, output_path=None, suffix: ExportFileFormat = ExportFileFormat.json):
-
+        result = self.resolver.resolve(selector)
+        notes = result.items
+        
         export_time = datetime.now(timezone.utc)
 
         output_file = output_path / f"export_{self.formatter.to_filename(export_time)}{suffix.extension}"
 
         if suffix == ExportFileFormat.json:
-            self.to_json(result, output_file)
+            self.to_json(notes, output_file)
 
         elif suffix == ExportFileFormat.markdown:
-            parts = [self.to_markdown(note) for note in result.items]
+            parts = [self.to_markdown(note) for note in notes]
             output_file.write_text("\n\n---\n\n".join(parts), encoding="utf-8")
 
         elif suffix == ExportFileFormat.txt:
-            parts = [self.to_txt(note) for note in result.items]
+            parts = [self.to_txt(note) for note in notes]
             output_file.write_text("\n\n---\n\n".join(parts), encoding="utf-8")
 
         else:
             raise NoteExportError(f"Unsupported export format: {suffix}")
 
-        return output_file
+        return output_file, notes
 
-    def to_json(self, result, output_file: Path):
+    def to_json(self, notes, output_file: Path):
         data = {
-            "notes": [self.mapper.to_dict(note) for note in result.items]
+            "notes": [self.mapper.to_dict(note) for note in notes]
         }
 
         output_file.write_text(

@@ -4,12 +4,7 @@ from typing import Optional
 
 from doggy_notes.cli.dependencies import get_dependencies
 
-from doggy_notes.domain.exceptions.note_errors import (
-    NoteEmptyStorageError,
-    SearchFilterError,
-    NoteNotFoundError,
-    NoteAmbiguousIDError,
-)
+from doggy_notes.domain.exceptions.note_errors import AppError
 
 from doggy_notes.domain.enums.note_field import NoteField
 
@@ -29,9 +24,9 @@ def edit_app(
 
     deps = get_dependencies()
     try:
-        note_id = deps.id_parser.parse_id(note_id)
+        selector = deps.selector.build_selector(ids=[note_id])
 
-        note = deps.edit_note.resolve_note(note_id)
+        note = deps.edit_note.resolve_note(selector)
 
         old_text = getattr(note, field, None)
 
@@ -45,14 +40,14 @@ def edit_app(
 
         _edit_field(new_text, old_text, note, field, deps)
 
-    except (NoteEmptyStorageError, SearchFilterError, NoteNotFoundError, NoteAmbiguousIDError) as e:
+    except AppError as e:
         deps.console.error(deps.error_presenter.format(e))
 
 
 def _edit_field(new_text, old_text, note, field, deps):
     if new_text != old_text:
         
-        success, error_msg = deps.edit_note.execute(
+        success, error_messages = deps.edit_note.execute(
             note,
             field,
             new_text
@@ -65,8 +60,8 @@ def _edit_field(new_text, old_text, note, field, deps):
         	deps.console.write(f"[bold]Previous {field.value}:[/bold] {old_text}")
         	deps.console.write(f"[bold]New {field.value}:[/bold] {new_text}")
         
-        if error_msg:
-        	deps.console.error(error_msg)
+        if error_messages:
+        	deps.console.error(', '.join(error_messages))
 
     else:
         deps.console.warning("No changes detected")

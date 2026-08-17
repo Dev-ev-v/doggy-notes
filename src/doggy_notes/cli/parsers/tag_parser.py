@@ -2,6 +2,7 @@ import re
 import unicodedata
 
 from doggy_notes.domain.exceptions.note_errors import SearchFilterError
+from doggy_notes.domain.value_objects.criterion import Criterion
 
 class TagParserConfig:
     tag_filter = r'[\w \-+.#/]+'
@@ -9,43 +10,48 @@ class TagParserConfig:
 
 class TagParser:
 
+    def __init__(self, criterion_parser):
+        self.criterion_parser = criterion_parser
+        self.config = TagParserConfig
 
-    @staticmethod
-    def parse_tags(tags: list[str]) -> list[str]:
+    def parse_tags(self, tags: list[str]) -> list[Criterion]:
         if not tags:
             return []
-        normalized_tags = []
+        normalized_criteria = []
         seen = set()
 
         for raw_tag in tags:
-            tag = raw_tag.strip()
+            criterion = self.criterion_parser.parse(raw_tag.strip())
+
+            tag = criterion.value.strip()
             if not tag:
                 continue
 
-            tag = TagParser._sanitize_escape_literals(tag)
+            tag = self._sanitize_escape_literals(tag)
             tag = unicodedata.normalize("NFC", tag)
-            
-            TagParser._get_invalid_chars(tag)
+
+            self._get_invalid_chars(tag)
 
             lowered = tag.casefold()
-            if lowered not in seen:
-                seen.add(lowered)
-                normalized_tags.append(tag)
-        return normalized_tags
+            key = (lowered, criterion.exclude)
+            if key not in seen:
+                seen.add(key)
+                normalized_criteria.append(Criterion(value=tag, exclude=criterion.exclude))
 
-    
-    @staticmethod
-    def _get_invalid_chars(tag: str) -> SearchFilterError | None:
+        return normalized_criteria
 
+    def _get_invalid_chars(self, tag: str) -> None:
         invalid_characters = list({
             repr(char) for char in tag
-            if not re.fullmatch(TagParserConfig.tag_filter, char)
+            if not re.fullmatch(self.config.tag_filter, char)
         })
 
         if invalid_characters:
-            raise SearchFilterError("Tag contains invalid characters", tag, " ".join(invalid_characters))
-            
-    
-    @staticmethod
-    def _sanitize_escape_literals(tag: str) -> str:
-    	return re.sub(r'\\[ntr\\]', '', tag)
+            raise SearchFilterError(
+                filter=tag,
+                value=" ".join(invalid_characters),
+                message="Tag contains invalid characters",
+            )
+
+    def _sanitize_escape_literals(self, tag: str) -> str:
+        return re.sub(r'\\[ntr\\]', '', tag)

@@ -3,17 +3,13 @@ import logging
 from datetime import datetime, timezone
 
 from doggy_notes.domain.entities.note import build_fingerprint
-from doggy_notes.domain.exceptions.note_errors import (
-	NoteEmptyStorageError,
-	SearchFilterError,
-	NoteNotFoundError,
-)
 
 logger = logging.getLogger(__name__)
 
 class EditNoteUseCase:
-	def __init__(self, service, editor):
+	def __init__(self, service, resolver, editor):
 		self.service = service
+		self.resolver = resolver
 		self.editor = editor
 		
 	
@@ -23,8 +19,8 @@ class EditNoteUseCase:
 		return self.editor.open_editor(initial_text)
 
 	
-	def resolve_note(self, id: str):
-		result = self.service.get([id])
+	def resolve_note(self, selector):
+		result = self.resolver.resolve(selector)
 		note = result.items[0] if result.items else None
 		return note
 		
@@ -35,6 +31,6 @@ class EditNoteUseCase:
 	   note.fingerprint = build_fingerprint(note.title, note.content)
 	   note.updated_at = datetime.now(timezone.utc)
 	   
-	   success, error_msg = self.service.update(note)
+	   success, error_messages = self.service.update(note)
 	   
-	   return success, error_msg		  
+	   return success, error_messages	  

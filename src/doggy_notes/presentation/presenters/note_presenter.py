@@ -83,7 +83,7 @@ class NotePresenter:
 
     def resume_note(self, note: Note) -> Text:
         short_id = note.id[:self.config.short_id_length]
-        title = note.title or "Untitled"
+        title = note.title
         created_at = DateFormatter.to_relative(str(note.created_at))
         text = Text()
 

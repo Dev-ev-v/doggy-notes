@@ -1,146 +1,114 @@
-from typing import List, Optional, Dict, Any
-from dataclasses import dataclass, field
-from rich.text import Text
-
-@dataclass
-class ErrorDetail:
-    code: str
-    message: str
-    context: Dict[str, Any] = field(default_factory=dict)
-    
-    def __str__(self) -> str:
-        if self.context:
-            context_str = " | ".join(f"{k}={v}" for k, v in self.context.items())
-            return f"[{self.code}] {self.message} ({context_str})"
-        return f"[{self.code}] {self.message}"
+from enum import Enum
+from typing import Dict, Any, Optional
 
 
-class NoteException(Exception):
-    
-    def __init__(self, message: str = "", code: str = "NOTE_ERROR"):
+class ErrorCode(str, Enum):
+    NOTE_ERROR = "NOTE_ERROR"
+    NOTE_NOT_FOUND = "NOTE_NOT_FOUND"
+    NOTE_VALIDATION_ERROR = "NOTE_VALIDATION_ERROR"
+    SEARCH_FILTER_ERROR = "SEARCH_FILTER_ERROR"
+    STORAGE_EMPTY = "STORAGE_EMPTY"
+    NOTE_OPERATION_ERROR = "NOTE_OPERATION_ERROR"
+    NOTE_IMPORTATION_ERROR = "NOTE_IMPORTATION_ERROR"
+    NOTE_EXPORTATION_ERROR = "NOTE_EXPORTATION_ERROR"
+    PATH_NOT_FOUND_ERROR = "PATH_NOT_FOUND_ERROR"
+    NOTE_AMBIGUOUS_ID_ERROR = "NOTE_AMBIGUOUS_ID_ERROR"
+
+
+class AppError(Exception):
+
+    def __init__(self, message: str, code: ErrorCode, context: Optional[Dict[str, Any]] = None):
         self.message = message
         self.code = code
-        self.errors: List[ErrorDetail] = []
-        
-        if message:
-            self.add_error(code, message)
-        
+        self.context: Dict[str, Any] = context or {}
         super().__init__(self._format_message())
-    
-    def add_error(self, code: str, message: str, context: Optional[Dict[str, Any]] = None) -> "NoteException":        
-        error = ErrorDetail(code=code, message=message, context=context or {})
-        self.errors.append(error)
-        return self
-    
-    def add_errors(self, errors: List[tuple]) -> "NoteException":     
-        for error_data in errors:
-            if len(error_data) == 3:
-                code, message, context = error_data
-                self.add_error(code, message, context)
-            else:
-                code, message = error_data
-                self.add_error(code, message)
-        return self
-    
-    def has_errors(self) -> bool:        
-        return len(self.errors) > 0
-    
-    def error_count(self) -> int:      
-        return len(self.errors)
-    
+
     def _format_message(self) -> str:
-        if not self.errors:
-            return self.message or "Unknown error"
-        
-        if len(self.errors) == 1:
-            return str(self.errors[0])
-        
-        error_lines = [f"Many errors found ({len(self.errors)}):"]
-        for i, error in enumerate(self.errors, 1):
-            error_lines.append(f"  {i}. {error}")
-        
-        return "\n".join(error_lines)
-    
+        if self.context:
+            context_str = " | ".join(f"{k}={v}" for k, v in self.context.items())
+            return f"[{self.code.value}] {self.message} ({context_str})"
+        return f"[{self.code.value}] {self.message}"
+
     def __str__(self) -> str:
         return self._format_message()
-    
-    def get_errors(self) -> List[ErrorDetail]:
-        return self.errors
-    
-    def get_error_codes(self) -> List[str]:
-        return [error.code for error in self.errors]
+
+NoteException = AppError
 
 
-class NoteNotFoundError(NoteException):
+class NoteNotFoundError(AppError):
     def __init__(self, filters: Dict[str, Any], message: str = None):
-        self.filters = filters
-        msg = message or "No notes found with the applied filters"
-        super().__init__(msg, code="NOTE_NOT_FOUND")
+        super().__init__(
+            message or "No notes found with the applied filters",
+            code=ErrorCode.NOTE_NOT_FOUND,
+            context={"filters": filters},
+        )
 
 
-class NoteValidationError(NoteException):
-   
-    def __init__(self, field: str = "", message: str = "", validation_errors: List[tuple] = None):
-        self.field = field
-        
-        if validation_errors:
-            msg = f"Note(s) validation error"
-            super().__init__(msg, code="NOTE_VALIDATION_ERROR")
-            self.add_errors(validation_errors)
-        
-        else:
-            msg = f"Failed validation in '{field}': {message}" if field else message
-            super().__init__(msg, code="NOTE_VALIDATION_ERROR")
+class NoteValidationError(AppError):
+    def __init__(self, field: str = "", message: str = ""):
+        msg = f"Failed validation in '{field}': {message}" if field else message
+        super().__init__(
+            msg,
+            code=ErrorCode.NOTE_VALIDATION_ERROR,
+            context={"field": field} if field else None,
+        )
 
 
-class SearchFilterError(NoteException):
-    
-    def __init__(self, message: str = "", filter: str = None, value: str = None):
-        super().__init__(message or f"Invalid filter {filter}", code="SEARCH_FILTER_ERROR")
-        self.filter = filter
-        self.value = value
+class SearchFilterError(AppError):
+    def __init__(self, filter: str = None, value: str = None, message: str = ""):
+        super().__init__(
+            message or f"Invalid filter {filter}",
+            code=ErrorCode.SEARCH_FILTER_ERROR,
+            context={"filter": filter, "value": value},
+        )
 
 
-class NoteEmptyStorageError(NoteException):
-    
+class NoteEmptyStorageError(AppError):
     def __init__(self, message: str = None):
-        msg = message or "Notes storage empty"
-        super().__init__(msg, code="STORAGE_EMPTY")
+        super().__init__(
+            message or "Notes storage empty",
+            code=ErrorCode.STORAGE_EMPTY,
+        )
 
 
-class NoteOperationError(NoteException):
-    
-    def __init__(self, operation: str = "", message: str = "", errors: List[tuple] = None):
-        msg = message or f"Error during operation: {operation}"
-        super().__init__(msg, code="NOTE_OPERATION_ERROR")
-        
-        if errors:
-            self.add_errors(errors)
-            
+class NoteOperationError(AppError):
+    def __init__(self, operation: str = "", message: str = ""):
+        super().__init__(
+            message or f"Error during operation: {operation}",
+            code=ErrorCode.NOTE_OPERATION_ERROR,
+            context={"operation": operation} if operation else None,
+        )
 
-class NoteImportationError(NoteException):
-	
-	def __init__(self, message: str = ""):
-		msg = message or "Cannot complete note importation"
-		super().__init__(msg, code="NOTE_IMPORTATION_ERROR")
-		
-		
-class NoteExportError(NoteException):
-	
-	def __init__(self, message: str = ""):
-		msg = message or "Cannot complete note exportation"
-		super().__init__(msg, code="NOTE_EXPORTATION_ERROR")		
-		
-		
-class PathNotFoundError(NoteException):
-	
-	def __init__(self, path: str):
-		msg = f"Path '{path}' does not exist"
-		super().__init__(msg, code="PATH_NOT_FOUND_ERROR")
-		
 
-class NoteAmbiguousIDError(NoteException):
+class NoteImportationError(AppError):
+    def __init__(self, message: str = ""):
+        super().__init__(
+            message or "Cannot complete note importation",
+            code=ErrorCode.NOTE_IMPORTATION_ERROR,
+        )
+
+
+class NoteExportError(AppError):
+    def __init__(self, message: str = ""):
+        super().__init__(
+            message or "Cannot complete note exportation",
+            code=ErrorCode.NOTE_EXPORTATION_ERROR,
+        )
+
+
+class PathNotFoundError(AppError):
+    def __init__(self, path: str):
+        super().__init__(
+            f"Path '{path}' does not exist",
+            code=ErrorCode.PATH_NOT_FOUND_ERROR,
+            context={"path": path},
+        )
+
+
+class NoteAmbiguousIDError(AppError):
     def __init__(self, short_id: str, count: int):
-        self.short_id = short_id
-        self.count = count
-        super().__init__(f"Short ID '{short_id}' matches {count} notes, use the full ID", code="NOTE_AMBIGUOUS_ID_ERROR")		                                                                                                                                                		                                                                                                                                                
+        super().__init__(
+            f"Short ID '{short_id}' matches {count} notes, use the full ID",
+            code=ErrorCode.NOTE_AMBIGUOUS_ID_ERROR,
+            context={"short_id": short_id, "count": count},
+        )

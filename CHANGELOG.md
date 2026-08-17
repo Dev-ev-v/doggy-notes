@@ -1,6 +1,6 @@
 # CHANGELOG.md
 
-## [3.2.0] - 2026-07-24
+## [3.2.0] - 2026-08-16
 
 ### Added
 
@@ -9,18 +9,26 @@
 - Added plain text (`.txt`) export support.
 - Added extra confirmation prompts before permanently deleting notes from the Trash, reducing the risk of accidental data loss.  Uses readchar
 - Added a database optimization utility to reclaim unused SQLite storage space and reduce database size.
+- Added support for a `!` prefix in note-selection commands to negate/exclude filters (e.g. `meu_app list --tag '!archived'` lists all notes without the `archived` tag).
+- Added a title-based filtering structure for notes, now applied across most commands.
+- Added `note_resolver` to centralize the note-collection process. It takes a `NoteSelector`, which parses CLI selection arguments and ensures only one selection method was provided, then delegates to a resolution strategy and returns a `QueryResult`.
+- Added `architecture.md` documenting the project's current architecture.
 
 ### Changed
 
 - Legacy note import now supports migrations from all project versions up to `3.2.0`, making upgrades more reliable.
 - Import and export workflows have been expanded to support multiple file formats.
 - Improved data persistence and recovery workflows to better protect user notes.
+- Notes without a title are no longer displayed as "untitled"; the actual title is now shown regardless, surfacing missing-title cases instead of masking them.
+- CLI commands now import a single base error class instead of several custom error types, decoupling the CLI layer from implementation details of lower layers (e.g. the application layer).
+- Moved `note_service` and `editor_service` from `domain/services` to `application/services`, since they are closer to application logic than pure domain logic.
 
 ### Fixed
 
 - Fixed issues that could prevent legacy notes from being migrated correctly during upgrades.
 - Fixed import behavior to ensure imported notes are actually persisted instead of only passing schema validation.
 - Fixed several issues affecting note import reliability and data consistency.
+- Added validation to prevent creation of notes without a title (previously notes could be created without title using a bug in `edit` command, now it's no more possible).
 
 --
 

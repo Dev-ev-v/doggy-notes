@@ -3,7 +3,7 @@ from typing import Optional, List
 from pathlib import Path
 
 from doggy_notes.cli.dependencies import get_dependencies
-from doggy_notes.domain.exceptions.note_errors import NoteImportationError, NoteValidationError
+from doggy_notes.domain.exceptions.note_errors import AppError, NoteImportationError
 
 
 def import_app(
@@ -17,8 +17,8 @@ def import_app(
 
         _run_import(output_path, import_all, deps)
 
-    except (NoteImportationError, NoteValidationError) as e:
-        deps.console.error(e)	
+    except AppError as e:
+        deps.console.error(deps.error_presenter.format(e))	
 
 
 def _run_import(output_path: Path, import_all, deps):

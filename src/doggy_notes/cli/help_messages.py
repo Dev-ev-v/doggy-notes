@@ -1,21 +1,21 @@
 class HelpMessages():
 
-    LIST_APP_MESSAGE = "List notes using tags filter, with created_at and title ranking"
+    LIST_APP_MESSAGE = "List notes using tags filter, with created_at and title ranking."
 
     INFO_APP_MESSAGE = "Show detailed information about the installation and environment."
 
     CREATE_APP_MESSAGE = "Create a note and build its structure."
 
-    DELETE_APP_MESSAGE = "Delete notes. Use tags, ids, or 'all' to select notes. Requires confirmation before this operation."
+    DELETE_APP_MESSAGE = "Movr notes to trash. Use tags, ids, or 'all' to select notes. Requires confirmation before this operation."
 
-    READ_APP_MESSAGE = "Read a note field or all its content. Select notes with ids or tags. Read notes content by default"
+    READ_APP_MESSAGE = "Read a note field or all its content. Select notes with ids or tags. Read notes content by default."
 
     PATH_APP_MESSAGE = "Show a tree of doggy-notes files or a tree of a valid directory. Can read files and see their sizes."
     
     EDIT_APP_MESSAGE = "Edit a note field and save it if any change is detected."
     
-    IMPORT_APP_MESSAGE = "Import a note outside doggy-notes app or from exports_dir"
+    IMPORT_APP_MESSAGE = "Import a note outside doggy-notes app or from exports_dir."
     
-    EXPORT_APP_MESSAGE = "Export a note inside doggy-notes storage in json format"
+    EXPORT_APP_MESSAGE = "Export a note inside doggy-notes storage in json format."
     
-    TRASH_APP_MESSAGE = "Manage trash app"
+    TRASH_APP_MESSAGE = "Manage trash app. Can delete notes permanently before confirmation or restore them."

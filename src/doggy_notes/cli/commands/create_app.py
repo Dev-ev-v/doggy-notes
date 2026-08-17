@@ -1,21 +1,21 @@
 import typer
 from typing import Optional, List
 
-from doggy_notes.domain.exceptions.note_errors import NoteValidationError, SearchFilterError
+from doggy_notes.domain.exceptions.note_errors import AppError
 from doggy_notes.cli.dependencies import get_dependencies
 
 def create_app(
     content: str = typer.Argument(
-    	"",
+    	None,
         help="Main note content",
     ),
     title: Optional[str] = typer.Option(
-        "",
+        "Untitled",
         "--title",
         help="Note title (max 100 chars)",
     ),
     description: Optional[str] = typer.Option(
-        "",
+        None,
         "--description",
         "-d",
         help="Aditional note details",
@@ -52,5 +52,5 @@ def create_app(
         if error_messages:
         	deps.console.error(', '.join(error_messages))
         
-    except (NoteValidationError, SearchFilterError) as e:
+    except AppError as e:
         deps.console.error(deps.error_presenter.format(e))

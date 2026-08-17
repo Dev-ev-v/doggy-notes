@@ -11,23 +11,7 @@ class NoteRepository(ABC):
     @abstractmethod
     def update(self, note: Note) -> None:
         pass
-
-    @abstractmethod
-    def get_by_id(self, note_id: str, trash: bool) -> Note | None:
-        pass
-
-    @abstractmethod
-    def get_by_short_id(self, short_id: str, trash: bool) -> Note | None:
-        pass
-
-    @abstractmethod
-    def get_by_tags(self, tags: list[str], mode: str, trash: bool) -> list[Note]:
-        pass
-
-    @abstractmethod
-    def get_all(self, trash: bool) -> list[Note]:
-        pass
-
+        
     @abstractmethod
     def add_to_trash(self, note: Note) -> None:
         pass
@@ -41,9 +25,30 @@ class NoteRepository(ABC):
         pass
 
     @abstractmethod
+    def get_by_id(self, note_id: str, trash: bool) -> Note | None:
+        pass
+
+    @abstractmethod
+    def get_by_short_id(self, short_id: str, trash: bool) -> Note | None:
+        pass
+
+    @abstractmethod
+    def get_by_tags(self, tags: list[str], mode: str, trash: bool) -> list[Note]:
+        pass
+        
+    @staticmethod
+    def get_by_title(self, title: str, trash: bool) -> list[Note]:
+    	pass
+
+    @abstractmethod
+    def get_all(self, trash: bool) -> list[Note]:
+        pass
+
+
+    @abstractmethod
     def exists_by_id(self, id: str) -> bool:
         pass
 
     @abstractmethod
     def exists_by_fingerprint(self, fingerprint: str) -> str | None:
-        pass
+        pass        

@@ -2,7 +2,7 @@ import typer
 from typing import Optional, List
 from pathlib import Path
 
-from doggy_notes.domain.exceptions.note_errors import NoteImportationError, NoteNotFoundError, SearchFilterError, NoteEmptyStorageError, NoteAmbiguousIDError, PathNotFoundError
+from doggy_notes.domain.exceptions.note_errors import AppError
 
 from doggy_notes.cli.dependencies import get_dependencies
 from doggy_notes.domain.enums.mode import Mode
@@ -11,18 +11,9 @@ from doggy_notes.domain.enums.file_format import ExportFileFormat
 export_app = typer.Typer(help="Export notes")
 
 
-def _run_export(*, note_ids=None, tags=None, mode="AND", path=None, format="json"):
+def _run_export(selector, path=None, format="json"):
     deps = get_dependencies()
-    try:
-        parsed_ids = deps.id_parser.parse_ids(note_ids)
-        parsed_tags = deps.tag_parser.parse_tags(tags)
-        
-        result = deps.export_notes.resolve_notes(
-            ids=parsed_ids,
-            tags=parsed_tags,
-            mode=mode,
-        )
-        
+    try:        
         try:
             export_format = ExportFileFormat(format)
         except ValueError:
@@ -31,13 +22,17 @@ def _run_export(*, note_ids=None, tags=None, mode="AND", path=None, format="json
             raise typer.Exit(code=1)
         
         output_path = deps.export_notes.resolve_output_path(path)
-        file = deps.export_notes.execute(result, output_path, export_format)
-        deps.console.success(f"Notes succesfully exported")
-        deps.console.panel(str(file))
+        file, notes = deps.export_notes.execute(selector, output_path, export_format)
+        deps.console.success(f"{len(notes)} notes succesfully exported")
+        formatted_notes = [deps.note_presenter.resume_note(note) for note in notes]
+        deps.console.list_notes(formatted_notes, "Notes added to trash")
+        parts = Path(file).parts
+        root_name = parts[-1]
+        deps.console.panel(root_name, "File Generated")
 
         
-    except (NoteImportationError, NoteNotFoundError, SearchFilterError, NoteEmptyStorageError, NoteAmbiguousIDError, PathNotFoundError) as e:
-        deps.console.error(e)
+    except AppError as e:
+        deps.console.error(deps.error_presenter.format(e))
 
 
 @export_app.command("id")
@@ -47,7 +42,10 @@ def export_by_id(
     format: str = typer.Option("json", "--format", help="File format to export"),
 ):
  
-    _run_export(note_ids=note_ids, path=path, format=format)
+    deps = get_dependencies()
+    selector = deps.selector.build_selector(ids=note_ids)
+    
+    _run_export(selector, path=path, format=format)
 
 
 @export_app.command("tag")
@@ -58,7 +56,10 @@ def export_by_tag(
     format: str = typer.Option("json", "--format", help="File format to export"),
 ):
     
-    _run_export(tags=tags, mode=mode, path=path, format=format)
+    deps = get_dependencies()
+    selector = deps.selector.build_selector(tags=tags, mode=mode)
+    
+    _run_export(selector, path=path, format=format)
 
 
 @export_app.command("all")
@@ -67,4 +68,6 @@ def export_all(
     format: str = typer.Option("json", "--format", help="File format to export"),
 ):
     
-    _run_export(path=path, format=format)			
+    deps = get_dependencies()
+    selector = deps.selector.build_selector()
+    _run_export(selector, path=path, format=format)			
